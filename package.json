@@ -1,5 +1,5 @@
 {
-  "name": "bagcaddie-tracking-app",
+  "name": "bagcaddie-club-flow-app",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -35,6 +35,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.23.24",
     "input-otp": "^1.4.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.546.0",

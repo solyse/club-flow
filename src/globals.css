@@ -43,6 +43,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --spacing: .25rem;
 }
 
 .dark {
@@ -134,28 +135,49 @@
 
   .border,
   #bcClubFlow .border,
-  #bcClubFlow .bc-progress-line .border{
+  #bcClubFlow .bc-progress-line .border {
     border-style: solid;
+    border-radius: 0.75rem;
+    border-color: #E0E0E0;
   }
-  #bcClubFlow  .bg-input-background{
+
+  #bcClubFlow .bg-input-background {
     background-color: #f3f3f5 !important;
-    border:0!important;
-    border-radius: 8px!important;
+    border: 0 !important;
+    border-radius: 8px !important;
   }
+
   .bc-otp-inputs input,
-  .bc-otp-inputs input:hover{
-    border-color:rgb(209 213 219 / var(--tw-border-opacity, 1));
-    border-radius: 8px!important;
-    border-style: solid!important;
+  .bc-otp-inputs input:hover {
+    border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+    border-radius: 8px !important;
+    border-style: solid !important;
   }
-  .bc-otp-inputs input:focus{
-    border-color:#c8a654;
+
+  .bc-otp-inputs input:focus {
+    border-color: #c8a654;
   }
-  .bc-otp-inputs input:focus,.bc-otp-inputs input:active{
+
+  .bc-otp-inputs input:focus,
+  .bc-otp-inputs input:active {
     --tw-ring-opacity: 1;
     --tw-ring-color: rgb(200 166 84 / var(--tw-ring-opacity, 1));
     box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-    border-style: solid!important;
+    border-style: solid !important;
+  }
+
+  .bc-auth-form input[type=tel],
+  .bc-auth-form input[type=email] {
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 0.75rem;
+    padding-left: calc(var(--spacing) * 12) !important;
+  }
+
+  .bc-auth-form input[type=tel]:focus,
+  .bc-auth-form input[type=email]:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   }
 }
 
@@ -216,4 +238,25 @@
 
 html {
   font-size: var(--font-size);
+}
+
+/* Sonner Toast Customization */
+[data-sonner-toast][data-type="error"] {
+  background-color: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: #dc2626 !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background-color: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #16a34a !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #16a34a !important;
 }

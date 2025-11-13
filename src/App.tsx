@@ -3,15 +3,15 @@ import { AccessStep } from './components/AccessStep';
 import { VerifyStep } from './components/VerifyStep';
 import { RegisterStep } from './components/RegisterStep';
 import { ProgressIndicator } from './components/ProgressIndicator';
-import { HelpfulTipsCard } from './components/HelpfulTipsCard';
 import { Header } from './components/Header';
 import { Toaster } from './components/ui/sonner';
 import { Loader } from './components/Loader';
-import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode } from './services/api';
+import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData, RatesResponse, ShippingRate } from './services/api';
 import { storage } from './services/storage';
 import { envConfig } from './config/env';
+import { ClubAccessComponent } from './components/ClubAccessComponent';
 
-type Step = 'access' | 'verify' | 'register' | 'booking';
+type Step = 'access' | 'verify' | 'register' | 'booking' | 'quote';
 
 function App() {
   const [currentStep, setCurrentStep] = useState<Step>('access');
@@ -22,6 +22,10 @@ function App() {
   const [enrichedItems, setEnrichedItems] = useState<EnrichedItem[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LocationInfo | null>(null);
   const [countryCodes, setCountryCodes] = useState<CountryCode[] | null>(null);
+  const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[] | null>(null);
+  const [ratesError, setRatesError] = useState<string | null>(null);
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadingStates, setLoadingStates] = useState({
     products: true,
@@ -53,6 +57,81 @@ function App() {
       // Mark that app has been initialized
       localStorage.setItem(APP_INITIALIZED_KEY, 'true');
     }
+  }, []);
+
+  // Check for quote data on app load and calculate rates
+  useEffect(() => {
+    const loadQuoteAndRates = async () => {
+      try {
+        // Check for quote in localStorage
+        const quoteStr = localStorage.getItem('_bc_quote');
+        if (!quoteStr) {
+          return;
+        }
+
+        const quote: QuoteData = JSON.parse(quoteStr);
+        
+        // Validate quote data has required fields
+        if (!quote.from || !quote.to) {
+          console.warn('Invalid quote data in localStorage');
+          return;
+        }
+
+        setQuoteData(quote);
+        setIsLoadingRates(true);
+        setRatesError(null);
+
+        // Prepare rates API payload
+        const ratesPayload = {
+          ship_from: {
+            street1: quote.from.street1,
+            city: quote.from.city,
+            state: quote.from.state,
+            postal_code: quote.from.postal_code,
+            country: quote.from.country,
+          },
+          ship_to: {
+            street1: quote.to.street1,
+            city: quote.to.city,
+            state: quote.to.state,
+            postal_code: quote.to.postal_code,
+            country: quote.to.country,
+          },
+          parcels: {
+            item_id: envConfig.itemId,
+            item_name: "Standard Golf bags",
+            quantity: 1,
+            dimensions: {
+              depth: '14',
+              height: '48',
+              weight: '48',
+              width: '14',
+            },
+          },
+        };
+
+        // Call rates API
+        const ratesResponse = await apiService.calculateRates(ratesPayload);
+
+        if (ratesResponse.data.success) {
+          setShippingRates(ratesResponse.data.rates);
+          setCurrentStep('quote');
+        } else {
+          const errorMessage = 'message' in ratesResponse.data 
+            ? ratesResponse.data.message 
+            : 'Failed to calculate rates';
+          setRatesError(errorMessage);
+          setCurrentStep('quote'); // Still show quote step to display error
+        }
+      } catch (error) {
+        console.error('Error loading quote and rates:', error);
+        setRatesError('Failed to load shipping rates. Please try again.');
+      } finally {
+        setIsLoadingRates(false);
+      }
+    };
+
+    loadQuoteAndRates();
   }, []);
 
   // Load products on app initialization
@@ -201,9 +280,52 @@ function App() {
     }
   }, [currentStep]);
 
+  // Show quote view if quote data exists
+  if (currentStep === 'quote' && quoteData && shippingRates) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Loader isLoading={isLoadingRates} />
+        <Toaster position="top-right" />
+        <ClubAccessComponent
+          entryMode="QuickQuote"
+          from={quoteData.from.name || quoteData.from.address}
+          to={quoteData.to.name || quoteData.to.address}
+          rates={shippingRates}
+          quoteData={quoteData}
+          onComplete={() => {
+            // Handle completion - could redirect or proceed to next step
+            setCurrentStep('access');
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Show error if rates failed to load
+  if (currentStep === 'quote' && ratesError) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4 text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-red-800 text-xl font-semibold mb-2">Unable to Load Rates</h2>
+            <p className="text-red-600 mb-4">{ratesError}</p>
+            <button
+              onClick={() => setCurrentStep('access')}
+              className="bg-[#C8A654] text-white px-6 py-2 rounded-lg hover:bg-[#B89544] transition-colors"
+            >
+              Continue to Access
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <Loader isLoading={isInitialLoading} />
+       {/* Header */}
+       <Header />
+      <Loader isLoading={isInitialLoading || isLoadingRates} />
       <Toaster />
       {productsError && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2">

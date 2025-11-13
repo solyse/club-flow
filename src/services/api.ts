@@ -37,6 +37,7 @@ export interface EnrichedItem {
   dimensions: Dimensions;
   price: any; // Price object (can be customized)
   quantity: number;
+  profileComplete: boolean;
   member: {
     firstName: string;
     lastName: string;
@@ -316,6 +317,116 @@ export interface AsConfigResponse {
   memory: string;
   epsid: string;
 }
+
+// Quote types
+export interface QuoteLocation {
+  id: string;
+  name: string;
+  street1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  type: string;
+  placeId: string;
+  source: string;
+  address: string;
+}
+
+export interface QuoteData {
+  from: QuoteLocation;
+  to: QuoteLocation;
+}
+
+// Rates API types
+export interface RatesRequest {
+  ship_from: {
+    street1: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+  };
+  ship_to: {
+    street1: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+  };
+  parcels: {
+    quantity: number;
+    dimensions: {
+      depth: string;
+      height: string;
+      weight: string;
+      width: string;
+    };
+  };
+}
+
+export interface ShippingRate {
+  shipper_account: {
+    id: string;
+    slug: string;
+    description: string;
+  };
+  service_type: string;
+  service_name: string;
+  pickup_deadline: string | null;
+  booking_cut_off: string | null;
+  delivery_date: string;
+  transit_time: number;
+  error_message: string | null;
+  info_message: string | null;
+  charge_weight: {
+    value: number;
+    unit: string;
+  };
+  total_charge: {
+    amount: number;
+    currency: string;
+  };
+  detailed_charges: Array<{
+    type: string;
+    charge: {
+      amount: number;
+      currency: string;
+    };
+  }>;
+  bc_actual_costs: {
+    amount: number;
+    currency: string;
+    margin_type: string;
+  };
+}
+
+export interface RatesSuccessResponse {
+  x: number;
+  data: {
+    success: true;
+    rates: ShippingRate[];
+    is_cached: boolean;
+  };
+  duration: number;
+  memory: string;
+  epsid: string;
+}
+
+export interface RatesErrorResponse {
+  x: number;
+  data: {
+    success: false;
+    status: number;
+    message: string;
+    errors: string;
+  };
+  duration: number;
+  memory: string;
+  epsid: string;
+}
+
+export type RatesResponse = RatesSuccessResponse | RatesErrorResponse;
 
 // API service class
 export class ApiService {
@@ -857,13 +968,14 @@ export class ApiService {
         dimensions: product.dimensions,
         price: { amount: product.price, currency: 'USD' }, // Default price object
         quantity: 1,
+        profileComplete: !!(customerData.firstName && (customerData.phone || customerData.email)),
         member: {
           firstName: customerData.firstName,
-          lastName: customerData.lastName,
-          phone: customerData.phone,
-          email: customerData.email,
+          lastName: customerData.lastName || '',
+          phone: customerData.phone || '',
+          email: customerData.email || '',
           id: customerData.id,
-          vip: customerData.vip,
+          vip: customerData.vip || false,
           vip_membership_start_date: customerData.vip_membership_start_date || null,
           vip_membership_end_date: customerData.vip_membership_end_date || null
         }
@@ -1006,6 +1118,45 @@ export class ApiService {
       }
     } catch (error) {
       console.error('Error processing partner items:', error);
+    }
+  }
+
+  /**
+   * Calculate shipping rates
+   * @param payload - Rates calculation payload
+   * @returns Rates response with shipping options
+   */
+  public async calculateRates(payload: RatesRequest): Promise<RatesResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/calculate-rates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: RatesResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Rates API Error:', error);
+      const errorResponse: RatesErrorResponse = {
+        x: 400,
+        data: {
+          success: false,
+          status: 400,
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          errors: 'Failed to calculate rates. Please try again.',
+        },
+        duration: 0,
+        memory: '0',
+        epsid: '',
+      };
+      return errorResponse;
     }
   }
 }
