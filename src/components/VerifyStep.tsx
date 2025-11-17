@@ -55,7 +55,6 @@ export function VerifyStep({ contactInfo, onSubmit, onBack }: VerifyStepProps) {
           const partnerPayload = isEmail
             ? { email: contactInfo }
             : { phone: contactInfo };
-            console.log('partnerPayload', partnerPayload);
           const partnerResp = await apiService.getPartner(partnerPayload);
           hasPartner = (partnerResp as any)?.data?.success === true;
           

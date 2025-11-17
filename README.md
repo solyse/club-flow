@@ -339,7 +339,7 @@ The application follows a progressive flow:
 4. **Booking Step**
    - Success confirmation
    - Automatic redirect to booking page
-   - URL format: `{websiteUrl}/club/?{bagcaddieCode}`
+   - URL format: `{websiteUrl}/club/?{bagCaddieCode}`
 
 ### QR Code Scanning
 

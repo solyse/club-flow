@@ -1,8 +1,8 @@
 // Hero images for each destination
 export const heroImages: Record<string, string> = {
     // USA Golf Clubs
-    'Augusta National Golf Club': 'https://images.unsplash.com/photo-1684144004516-305d67b7352d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdWd1c3RhJTIwZ29sZiUyMGNvdXJzZSUyMGdyZWVufGVufDF8fHx8MTc2MjAxNzIwMXww&ixlib=rb-4.1.0&q=80&w=1080',
-    'Pebble Beach Golf Links': 'https://images.unsplash.com/photo-1724243846239-fe61d1499713?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZWJibGUlMjBiZWFjaCUyMG9jZWFuJTIwZ29sZnxlbnwxfHx8fDE3NjIwMTcyMDF8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    // 'Augusta National Golf Club': 'https://images.unsplash.com/photo-1684144004516-305d67b7352d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdWd1c3RhJTIwZ29sZiUyMGNvdXJzZSUyMGdyZWVufGVufDF8fHx8MTc2MjAxNzIwMXww&ixlib=rb-4.1.0&q=80&w=1080',
+    'Pebble Beach Golf Links': 'https://cdn.shopify.com/s/files/1/0613/9694/2980/files/pebble_beach_hero_image.jpg',
     'Pinehurst Resort': 'https://images.unsplash.com/photo-1748372253599-5a2882d93223?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaW5lJTIwdHJlZXMlMjBnb2xmJTIwY291cnNlfGVufDF8fHx8MTc2MjAxNzIwNHww&ixlib=rb-4.1.0&q=80&w=1080',
     'Kiawah Island Golf Resort': 'https://images.unsplash.com/photo-1617332763121-0106f3dd4935?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2FzdGFsJTIwZ29sZiUyMGNvdXJzZSUyMG9jZWFufGVufDF8fHx8MTc2MjAxNzIwNHww&ixlib=rb-4.1.0&q=80&w=1080',
     'Torrey Pines Golf Course': 'https://images.unsplash.com/photo-1617332763121-0106f3dd4935?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2FzdGFsJTIwZ29sZiUyMGNvdXJzZSUyMG9jZWFufGVufDF8fHx8MTc2MjAxNzIwNHww&ixlib=rb-4.1.0&q=80&w=1080',

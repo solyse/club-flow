@@ -9,14 +9,14 @@ export interface EnvConfig {
   apiBaseUrl: string;
   locUrl: string;
   websiteUrl: string;
-  bagcaddieCode: string;
+  bagCaddieCode: string;
   itemId: string;
 }
 
 // Default configuration (development/staging)
 const defaultConfig: EnvConfig = {
   env: 'staging',
-  bagcaddieCode: 'BGDLO6F5',
+  bagCaddieCode: 'BGDLO6F5',
   apiBaseUrl: 'https://fc.vsfy.com/vShip/bc-sandbox',
   websiteUrl: 'https://stg.bagcaddie.com',
   locUrl: 'https://fc.vsfy.com/loc/?bagCaddie2025',
@@ -26,7 +26,7 @@ const defaultConfig: EnvConfig = {
 // Production configuration
 const productionConfig: EnvConfig = {
   env: 'production',
-  bagcaddieCode: 'BGDLO6F5',
+  bagCaddieCode: 'BGDLO6F5',
   apiBaseUrl: 'https://fc.vsfy.com/vShip/fc',
   websiteUrl: 'https://bagcaddie.com',
   locUrl: 'https://fc.vsfy.com/loc/?bagCaddie2025',
@@ -55,7 +55,7 @@ export const getEnvConfig = (): EnvConfig => {
     apiBaseUrl: process.env.REACT_APP_API_BASE_URL || baseConfig.apiBaseUrl,
     locUrl: process.env.REACT_APP_LOC_URL || baseConfig.locUrl,
     websiteUrl: process.env.REACT_APP_WEBSITE_URL || baseConfig.websiteUrl,
-    bagcaddieCode: process.env.REACT_APP_BAGCADDIE_CODE || baseConfig.bagcaddieCode,
+    bagCaddieCode: process.env.REACT_APP_BAGCADDIE_CODE || baseConfig.bagCaddieCode,
     itemId: process.env.REACT_APP_ITEM_ID || baseConfig.itemId
   };
 

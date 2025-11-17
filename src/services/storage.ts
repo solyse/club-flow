@@ -6,7 +6,10 @@ export const STORAGE_KEYS = {
   CLUB_FLOW_OWNER: "_bc_club_flow_owner",
   ENRICHED_ITEMS: "_bc_items",
   LOCATION: "_bc_location",
-  COUNTRY_CODES: "_bc_country_codes"
+  COUNTRY_CODES: "_bc_country_codes",
+  QUOTES: "_bc_quotes",
+  QUOTE: "_bc_quote",
+  CONTACT_INFO: "_bc_contact_info"
 } as const;
 
 export type StorageKey = keyof typeof STORAGE_KEYS;
@@ -342,5 +345,104 @@ export const storage = {
    */
   hasProducts: (): boolean => {
     return storageService.hasItem('PRODUCTS');
+  },
+
+  /**
+   * Store quotes data (from and to addresses)
+   * @param data - Quote data to store (with from and to addresses)
+   * @returns boolean indicating success
+   */
+  setQuotes: <T>(data: T): boolean => {
+    return storageService.setItem('QUOTES', data);
+  },
+
+  /**
+   * Get quotes data
+   * @returns Quote data or null
+   */
+  getQuotes: <T>(): T | null => {
+    return storageService.getItem<T>('QUOTES');
+  },
+
+  /**
+   * Remove quotes data
+   * @returns boolean indicating success
+   */
+  removeQuotes: (): boolean => {
+    return storageService.removeItem('QUOTES');
+  },
+
+  /**
+   * Check if quotes data exists
+   * @returns boolean indicating if data exists
+   */
+  hasQuotes: (): boolean => {
+    return storageService.hasItem('QUOTES');
+  },
+
+  /**
+   * Store quote data (single quote with from and to addresses)
+   * @param data - Quote data to store
+   * @returns boolean indicating success
+   */
+  setQuote: <T>(data: T): boolean => {
+    return storageService.setItem('QUOTE', data);
+  },
+
+  /**
+   * Get quote data
+   * @returns Quote data or null
+   */
+  getQuote: <T>(): T | null => {
+    return storageService.getItem<T>('QUOTE');
+  },
+
+  /**
+   * Remove quote data
+   * @returns boolean indicating success
+   */
+  removeQuote: (): boolean => {
+    return storageService.removeItem('QUOTE');
+  },
+
+  /**
+   * Check if quote data exists
+   * @returns boolean indicating if data exists
+   */
+  hasQuote: (): boolean => {
+    return storageService.hasItem('QUOTE');
+  },
+
+  /**
+   * Store contact info data
+   * @param data - Contact info to store
+   * @returns boolean indicating success
+   */
+  setContactInfo: <T>(data: T): boolean => {
+    return storageService.setItem('CONTACT_INFO', data);
+  },
+
+  /**
+   * Get contact info data
+   * @returns Contact info or null
+   */
+  getContactInfo: <T>(): T | null => {
+    return storageService.getItem<T>('CONTACT_INFO');
+  },
+
+  /**
+   * Remove contact info data
+   * @returns boolean indicating success
+   */
+  removeContactInfo: (): boolean => {
+    return storageService.removeItem('CONTACT_INFO');
+  },
+
+  /**
+   * Check if contact info data exists
+   * @returns boolean indicating if data exists
+   */
+  hasContactInfo: (): boolean => {
+    return storageService.hasItem('CONTACT_INFO');
   }
 };

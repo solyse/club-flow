@@ -1093,7 +1093,7 @@ export class ApiService {
       }
 
       if (!customerData.items || customerData.items.length === 0) {
-        console.warn('Partner has no items to enrich');
+        console.warn('No Golf bags registered yet');
         return;
       }
 
@@ -1106,6 +1106,7 @@ export class ApiService {
           enrichedItems.push(enrichedItem);
         }
       }
+      
 
       // Store enriched items (replace existing, don't merge)
       if (enrichedItems.length > 0) {

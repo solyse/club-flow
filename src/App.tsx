@@ -63,19 +63,20 @@ function App() {
   useEffect(() => {
     const loadQuoteAndRates = async () => {
       try {
-        // Check for quote in localStorage
-        const quoteStr = localStorage.getItem('_bc_quote');
-        if (!quoteStr) {
+        // Check for quote in storage
+        const quote = storage.getQuote<QuoteData>();
+        if (!quote) {
           return;
         }
-
-        const quote: QuoteData = JSON.parse(quoteStr);
         
         // Validate quote data has required fields
         if (!quote.from || !quote.to) {
           console.warn('Invalid quote data in localStorage');
           return;
         }
+
+        // Always replace _bc_quotes with current _bc_quote
+        storage.setQuotes(quote);
 
         setQuoteData(quote);
         setIsLoadingRates(true);
@@ -275,7 +276,9 @@ function App() {
     if (currentStep === 'booking') {
       // Clear app initialization flag before redirect
       localStorage.removeItem('_bc_app_initialized');
-      const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagcaddieCode}`;
+      storage.removeQuote();
+      storage.removeQuote();
+      const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
       window.location.href = redirectUrl;
     }
   }, [currentStep]);
@@ -292,10 +295,12 @@ function App() {
           to={quoteData.to.name || quoteData.to.address}
           rates={shippingRates}
           quoteData={quoteData}
-          onComplete={() => {
+          onComplete={(contactInfo) => {
+            setContactInfo(contactInfo);
             // Handle completion - could redirect or proceed to next step
-            setCurrentStep('access');
+            setCurrentStep('register');
           }}
+          onQRSuccess={handleQRSuccess}
         />
       </div>
     );
@@ -346,7 +351,7 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
-        <div className="max-w-[480px] mx-auto">
+        <div className="max-w-4xl mx-auto">
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} />

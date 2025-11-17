@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Mail, Phone, Camera } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { QRScanModal } from './QRScanModal';
-import { CustomerData, apiService, CountryCode, LocationInfo } from '../services/api';
-import { storage } from '../services/storage';
+import { CustomerData, apiService } from '../services/api';
 
 interface AccessStepProps {
   onSubmit: (contact: string) => void;
@@ -15,103 +13,10 @@ interface AccessStepProps {
 
 export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
   const [contact, setContact] = useState('');
-  const [countryCode, setCountryCode] = useState<string>('+1');
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [showQRScan, setShowQRScan] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [countryCodeOptions, setCountryCodeOptions] = useState<CountryCode[]>([]);
-
-  // Load country codes and default from cached location
-  useEffect(() => {
-    const codes = storage.getCountryCodes<CountryCode[]>() || [];
-    if (codes.length === 0) return;
-    
-    setCountryCodeOptions(codes);
-    
-    const loc = storage.getLocation<LocationInfo>();
-    const callCode = loc?.country_metadata?.calling_code;
-    const normalizeCode = (s: string) => s?.replace(/[^+\d]/g, '').trim();
-    
-    let finalCode = '+1'; // Default fallback
-    
-    if (callCode && typeof callCode === 'string') {
-      // Normalize the calling code from location
-      const normalizedCallCode = normalizeCode(callCode);
-      
-      // Find matching country code from the options - check all codes
-      const matchingCode = codes.find((c) => {
-        const normalizedOption = normalizeCode(c.code || '');
-        return normalizedOption === normalizedCallCode;
-      });
-      
-      if (matchingCode) {
-        finalCode = normalizeCode(matchingCode.code || '');
-      } else {
-        // If exact match not found, try to find by partial match (e.g., +1-268 matches +1)
-        const partialMatch = codes.find((c) => {
-          const normalizedOption = normalizeCode(c.code || '');
-          return normalizedOption.startsWith(normalizedCallCode) || normalizedCallCode.startsWith(normalizedOption);
-        });
-        if (partialMatch) {
-          finalCode = normalizeCode(partialMatch.code || '');
-        }
-      }
-    } else if (codes.length > 0) {
-      // If no location, use first available code or +1
-      finalCode = normalizeCode(codes[0]?.code || '+1');
-    }
-    
-    // Ensure the code exists in the options list
-    const codeExists = codes.some((c) => {
-      const normalizedOption = normalizeCode(c.code || '');
-      return normalizedOption === finalCode;
-    });
-    
-    if (codeExists || codes.length === 0) {
-      setCountryCode(finalCode);
-    } else {
-      // Fallback to first code if the matched code doesn't exist in list
-      setCountryCode(normalizeCode(codes[0]?.code || '+1'));
-    }
-  }, []);
-
-  // Ensure countryCode is valid when options change
-  useEffect(() => {
-    if (countryCodeOptions.length === 0) return;
-    
-    const normalizeCode = (s: string) => s?.replace(/[^+\d]/g, '').trim();
-    const normalizedCurrent = normalizeCode(countryCode);
-    
-    // Check if current countryCode exists in options
-    const exists = countryCodeOptions.some((c) => {
-      const normalizedOption = normalizeCode(c.code || '');
-      return normalizedOption === normalizedCurrent;
-    });
-    
-    if (!exists) {
-      // Current code doesn't exist, try to find from location or use first available
-      const loc = storage.getLocation<LocationInfo>();
-      const callCode = loc?.country_metadata?.calling_code;
-      
-      if (callCode && typeof callCode === 'string') {
-        const normalizedCallCode = normalizeCode(callCode);
-        const matching = countryCodeOptions.find((c) => {
-          const normalizedOption = normalizeCode(c.code || '');
-          return normalizedOption === normalizedCallCode;
-        });
-        
-        if (matching) {
-          setCountryCode(normalizeCode(matching.code || ''));
-          return;
-        }
-      }
-      
-      // Fallback to first available code
-      const firstCode = normalizeCode(countryCodeOptions[0]?.code || '+1');
-      setCountryCode(firstCode);
-    }
-  }, [countryCodeOptions, countryCode]);
 
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
   const validatePhone = (value: string) => /^\+[0-9]{7,15}$/.test(value);
@@ -129,19 +34,31 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
         return;
       }
     } else {
-      // Build E.164-like phone string from country code + input (strip spaces/dashes)
-      const normalized = `${countryCode}${raw}`.replace(/[^0-9+]/g, '');
+      // If no country code is provided, add +1 (US) as default
+      let phoneNumber = raw.trim();
+      if (!phoneNumber.startsWith('+')) {
+        phoneNumber = `+1${phoneNumber}`;
+      }
+      // Normalize phone number (strip spaces/dashes, keep + and digits)
+      const normalized = phoneNumber.replace(/[^0-9+]/g, '');
       if (!validatePhone(normalized)) {
-        setError('Please enter a valid phone number including country code.');
+        setError('Please enter a valid phone number.');
         return;
       }
     }
 
     try {
       setIsLoading(true);
+      // For phone, ensure country code is present
+      let phoneValue = raw.trim();
+      if (!isEmailMode && !phoneValue.startsWith('+')) {
+        phoneValue = `+1${phoneValue}`;
+      }
+      const normalizedPhone = !isEmailMode ? phoneValue.replace(/[^0-9+]/g, '') : '';
+      
       const payload = isEmailMode
         ? { email: raw }
-        : { phone: `${countryCode}${raw}`.replace(/[^0-9+]/g, '') };
+        : { phone: normalizedPhone };
 
       const resp = await apiService.getPartner(payload);
       const partnerSuccess = (resp as any)?.data?.success === true;
@@ -167,8 +84,13 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
               // Continue even if enrichment fails
             }
           }
-          const finalContact = isEmailMode ? raw : `${countryCode}${raw}`.replace(/[^0-9+]/g, '');
-          onSubmit(finalContact);
+          // Ensure phone has country code
+          let finalContact = raw.trim();
+          if (!isEmailMode && !finalContact.startsWith('+')) {
+            finalContact = `+1${finalContact}`;
+          }
+          const finalPhone = !isEmailMode ? finalContact.replace(/[^0-9+]/g, '') : finalContact;
+          onSubmit(isEmailMode ? finalContact : finalPhone);
         } else {
           setError((otpResp as any)?.data?.message || 'Failed to send verification code.');
         }
@@ -179,14 +101,19 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
           first_name: 'User',
           last_name: '',
           email: isEmailMode ? raw : undefined,
-          phone: !isEmailMode ? `${countryCode}${raw}`.replace(/[^0-9+]/g, '') : undefined,
+          phone: !isEmailMode ? normalizedPhone : undefined,
         };
 
         const otpResp = await apiService.sendOtp(otpPayload);
         const otpSuccess = (otpResp as any)?.data?.success === true;
         if (otpSuccess) {
-          const finalContact = isEmailMode ? raw : `${countryCode}${raw}`.replace(/[^0-9+]/g, '');
-          onSubmit(finalContact);
+          // Ensure phone has country code
+          let finalContact = raw.trim();
+          if (!isEmailMode && !finalContact.startsWith('+')) {
+            finalContact = `+1${finalContact}`;
+          }
+          const finalPhone = !isEmailMode ? finalContact.replace(/[^0-9+]/g, '') : finalContact;
+          onSubmit(isEmailMode ? finalContact : finalPhone);
         } else {
           setError((otpResp as any)?.data?.message || 'Failed to send verification code.');
         }
@@ -201,7 +128,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
   return (
     <>
       <div className="text-center mb-4 sm:mb-6">
-        <h1 className="mb-4 sm:mb-6">Welcome to BagCaddie Club</h1>
+        <h2 className="mb-4 sm:mb-6"  style={{ fontSize: '36px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>Welcome to BagCaddie Club</h2>
         <p className="text-gray-900 mb-4 px-2">
           New or returning member — verify once and travel with ease.
         </p>
@@ -226,59 +153,14 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
                 className="w-full h-11"
               />
             ) : (
-              <div className="flex gap-2">
-                <Select 
-                  value={countryCode} 
-                  onValueChange={setCountryCode}
-                  key={countryCodeOptions.length > 0 ? 'loaded' : 'default'}
-                >
-                  <SelectTrigger className="w-24 !h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto">
-                    {countryCodeOptions.length
-                      ? (() => {
-                          const normalizeCode = (s: string) => s?.replace(/[^+\d]/g, '').trim();
-                          const seen = new Set<string>();
-                          const uniqueCodes: CountryCode[] = [];
-                          
-                          countryCodeOptions.forEach((c) => {
-                            const normalized = normalizeCode(c.code || '');
-                            if (normalized && !seen.has(normalized)) {
-                              seen.add(normalized);
-                              uniqueCodes.push(c);
-                            }
-                          });
-                          
-                          return uniqueCodes.map((c) => {
-                            const value = normalizeCode(c.code || '');
-                            if (!value) return null;
-                            return (
-                              <SelectItem key={value} value={value}>
-                                {value}
-                              </SelectItem>
-                            );
-                          });
-                        })()
-                      : (
-                          <>
-                            <SelectItem value="+1">+1</SelectItem>
-                            <SelectItem value="+44">+44</SelectItem>
-                            <SelectItem value="+61">+61</SelectItem>
-                            <SelectItem value="+91">+91</SelectItem>
-                          </>
-                        )}
-                  </SelectContent>
-                </Select>
-                <Input
-                  id="contact"
-                  type="tel"
-                  placeholder="Enter your mobile number"
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  className="flex-1 h-11"
-                />
-              </div>
+              <Input
+                id="contact"
+                type="tel"
+                placeholder="Enter your mobile number"
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                className="w-full h-11"
+              />
             )}
 
             <p className="text-sm text-gray-500 mt-2">

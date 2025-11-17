@@ -19,9 +19,9 @@ export function Header() {
         
         {/* Content */}
         <div className="relative z-10 flex items-center justify-center h-full">
-          <h2 className="text-white text-4xl sm:text-5xl lg:text-6xl tracking-wide text-center px-4">
+          <h1 className="text-white text-4xl sm:text-5xl lg:text-6xl tracking-wide text-center px-4">
             Create Your Journey
-          </h2>
+          </h1>
         </div>
       </div>
     </>
