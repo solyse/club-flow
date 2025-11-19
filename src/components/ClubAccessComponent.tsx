@@ -5,6 +5,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { BcClubIcon } from './ui/BcClubIcon';
+import { PhoneInput } from './ui/PhoneInput';
+import { usePhoneValidation } from './usePhoneValidation';
 import { toast } from 'sonner';
 import { getHeroImage } from '../data/heroImages';
 import { ShippingRate, QuoteData, CustomerData, apiService } from '../services/api';
@@ -22,6 +24,7 @@ interface ClubAccessComponentProps {
   quoteData?: QuoteData;
   onComplete?: (contactInfo: string) => void;
   onQRSuccess?: (customerData: CustomerData) => void;
+  redirectToBooking?: () => void;
 }
 
 interface ShippingOption {
@@ -175,7 +178,8 @@ export function ClubAccessComponent({
   rates,
   quoteData,
   onComplete,
-  onQRSuccess
+  onQRSuccess,
+  redirectToBooking
 }: ClubAccessComponentProps) {
   const [contact, setContact] = useState('');
   const [isEmailMode, setIsEmailMode] = useState(false);
@@ -206,7 +210,7 @@ export function ClubAccessComponent({
     overnight: 1,
   });
   const inputRef = useRef<HTMLInputElement>(null);
-
+  const phone = usePhoneValidation();
   // Auto-focus the input field when component mounts
   useEffect(() => {
     if (inputRef.current && !showOtpVerification) {
@@ -324,14 +328,8 @@ export function ClubAccessComponent({
   }, [rates, quoteData, entryMode]);
 
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
-  const validatePhone = (value: string) => /^\+[0-9]{7,15}$/.test(value);
+  
 
-  // Common method to redirect to booking page
-  const redirectToBooking = () => {
-    storage.removeQuote();
-    const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
-    window.location.href = redirectUrl;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,44 +343,19 @@ export function ClubAccessComponent({
         setError('Please enter a valid email address.');
         return;
       }
-    } else {
-      // If no country code is provided, add +1 (US) as default
-      let phoneNumber = raw.trim();
-      if (!phoneNumber.startsWith('+')) {
-        phoneNumber = `+1${phoneNumber}`;
-      }
-      // Normalize phone number (strip spaces/dashes, keep + and digits)
-      const normalized = phoneNumber.replace(/[^0-9+]/g, '');
-      if (!validatePhone(normalized)) {
-        setError('Please enter a valid phone number.');
-        return;
-      }
-    }
+    } 
 
-    // if (!value.trim()) {
-    //   toast.error(inputMode === 'mobile'
-    //     ? 'Please enter a valid mobile number.'
-    //     : 'Please enter a valid email address.'
-    //   );
-    //   return;
-    // }
-
-    // // Validate shipping option selection (only for QuickQuote mode)
-    // if (entryMode === 'QuickQuote' && !selectedShippingOption) {
-    //   toast.error('Please select a shipping method to continue.');
-    //   return;
-    // }
 
     setIsLoading(true);
     setOtpError('');
 
     try {
       // For mobile, if no country code is provided, add +1 (US) as default
-      let phoneValue = raw.trim();
-      if (!isEmailMode && !phoneValue.startsWith('+')) {
-        phoneValue = `+1${phoneValue}`;
-      }
-      const normalizedPhone = !isEmailMode ? phoneValue.replace(/[^0-9+]/g, '') : '';
+      // let phoneValue = raw.trim();
+      // if (!isEmailMode && !phoneValue.startsWith('+')) {
+      //   phoneValue = `+1${phoneValue}`;
+      // }
+      const normalizedPhone = !isEmailMode ? phone.value: '';
 
       const payload = isEmailMode
         ? { email: raw }
@@ -488,6 +461,10 @@ export function ClubAccessComponent({
                 }
               }
             }
+          }else{
+            //store the partner data in localStorage
+            storage.setContactInfo(partnerPayload);
+            redirectToBooking();
           }
         } catch (partnerErr) {
           // If partner check fails, assume no partner
@@ -496,14 +473,15 @@ export function ClubAccessComponent({
         }
 
         // If no partner, show registration step
-        if (!hasPartner) {
-          // Store contact info for registration step
-          setContactInfo(contactInfo);
-          setShowRegisterStep(true);
-        } else {
-          // Redirect to booking page
-          redirectToBooking();
-        }
+        // if (!hasPartner) {
+        //   // redirectToBooking();
+        //   // Store contact info for registration step
+        //   setContactInfo(contactInfo);         
+        //   // setShowRegisterStep(true);
+        // } else {
+        //   // Redirect to booking page
+        //   redirectToBooking();
+        // }
       } else {
         setOtpError((resp as any)?.data?.message || 'Invalid verification code');
         toast.error((resp as any)?.data?.message || 'Invalid verification code');
@@ -893,7 +871,6 @@ export function ClubAccessComponent({
                   </form>
                 ) : (
                   /* Contact Input Form */
-
                   <form onSubmit={handleSubmit} className="space-y-5 bc-auth-form">
                     <div className="mb-4">
                       <Label htmlFor="contact" className="mb-2 flex items-center gap-2">
@@ -903,6 +880,7 @@ export function ClubAccessComponent({
 
                       {isEmailMode ? (
                         <Input
+                        autoFocus={true}
                           id="contact"
                           type="email"
                           placeholder="Enter your email"
@@ -911,14 +889,14 @@ export function ClubAccessComponent({
                           className="w-full h-11"
                         />
                       ) : (
-                        <Input
-                          id="contact"
-                          type="tel"
-                          placeholder="Enter your mobile number"
-                          value={contact}
-                          onChange={(e) => setContact(e.target.value)}
-                          className="w-full h-11"
+                        <PhoneInput
+                          value={phone.value}
+                          onChange={phone.setValue}
+                          isValid={phone.isValid}
+                          countryCode={phone.countryCode}
+                          nationalNumber={phone.nationalNumber}
                         />
+                      
                       )}
 
                       <p className="text-sm text-gray-500 mt-2">
@@ -948,7 +926,7 @@ export function ClubAccessComponent({
                     <Button
                       type="submit"
                       className="w-full bg-[#C8A654] hover:bg-[#B89544] text-white h-11 rounded-lg"
-                      disabled={!contact.trim() || isLoading}
+                      disabled={isLoading || (isEmailMode ? !contact.trim() : !phone.isValid)}
                     >
                       {isLoading ? 'Checking…' : 'Continue'}
                     </Button>

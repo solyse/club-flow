@@ -54,6 +54,7 @@ function App() {
       // First time app load - clear the data
       storage.removeItemsOwner();
       storage.removeEnrichedItems();
+      storage.removeContactInfo();
       // Mark that app has been initialized
       localStorage.setItem(APP_INITIALIZED_KEY, 'true');
     }
@@ -270,16 +271,18 @@ function App() {
       setCurrentStep('verify');
     }
   };
-
+// Common method to redirect to booking page
+const redirectToBooking = () => {
+  storage.removeQuote();
+  localStorage.removeItem('_bc_app_initialized');
+  const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
+  // window.location.href = redirectUrl;
+};
   // Redirect to booking page when step is 'booking'
   useEffect(() => {
     if (currentStep === 'booking') {
-      // Clear app initialization flag before redirect
-      localStorage.removeItem('_bc_app_initialized');
-      storage.removeQuote();
-      storage.removeQuote();
-      const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
-      window.location.href = redirectUrl;
+      // Clear app initialization flag before redirect      
+      redirectToBooking();
     }
   }, [currentStep]);
 
@@ -301,6 +304,7 @@ function App() {
             setCurrentStep('register');
           }}
           onQRSuccess={handleQRSuccess}
+          redirectToBooking={redirectToBooking}
         />
       </div>
     );
@@ -351,7 +355,7 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
-        <div className="max-w-4xl mx-auto">
+        <div className=" mx-auto" style={{ maxWidth: '480px' }}>
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} />
@@ -363,6 +367,7 @@ function App() {
               contactInfo={contactInfo}
               onSubmit={handleVerifySubmit}
               onBack={handleBack}
+              redirectToBooking={redirectToBooking}
             />
           )}
           

@@ -9,9 +9,10 @@ interface VerifyStepProps {
   contactInfo: string;
   onSubmit: (code: string, hasPartner: boolean) => void;
   onBack: () => void;
+  redirectToBooking: () => void;
 }
 
-export function VerifyStep({ contactInfo, onSubmit, onBack }: VerifyStepProps) {
+export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }: VerifyStepProps) {
   const [code, setCode] = useState('');
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
@@ -73,6 +74,10 @@ export function VerifyStep({ contactInfo, onSubmit, onBack }: VerifyStepProps) {
                 }
               }
             }
+          }else{
+            //store the partner data in localStorage
+            storage.setContactInfo(partnerPayload);
+            redirectToBooking();
           }
         } catch (partnerErr) {
           // If partner check fails, assume no partner
@@ -80,7 +85,7 @@ export function VerifyStep({ contactInfo, onSubmit, onBack }: VerifyStepProps) {
           hasPartner = false;
         }
         
-        onSubmit(code, hasPartner);
+        // onSubmit(code, hasPartner);
       } else {
         setError((resp as any)?.data?.message || 'Invalid verification code');
         toast.error((resp as any)?.data?.message || 'Invalid verification code');
