@@ -1,4 +1,5 @@
 // Storage service for managing local storage operations
+import { envConfig } from '../config/env';
 
 // Storage keys constants
 export const STORAGE_KEYS = {
@@ -9,7 +10,8 @@ export const STORAGE_KEYS = {
   COUNTRY_CODES: "_bc_country_codes",
   QUOTES: "_bc_quotes",
   QUOTE: "_bc_quote",
-  CONTACT_INFO: "_bc_contact_info"
+  CONTACT_INFO: "_bc_contact_info",
+  APP_INITIALIZED: "_bc_app_initialized"
 } as const;
 
 export type StorageKey = keyof typeof STORAGE_KEYS;
@@ -43,6 +45,21 @@ export class StorageService {
   }
 
   /**
+   * Get storage key with environment suffix
+   * Adds "_dev" suffix in non-production environments
+   * @param key - Storage key
+   * @returns Storage key with environment suffix if needed
+   */
+  private getStorageKey(key: StorageKey): string {
+    const baseKey = STORAGE_KEYS[key];
+    // Add "_dev" suffix if not in production
+    if (envConfig.env !== 'production') {
+      return `${baseKey}_dev`;
+    }
+    return baseKey;
+  }
+
+  /**
    * Set data in localStorage
    * @param key - Storage key
    * @param data - Data to store
@@ -55,7 +72,7 @@ export class StorageService {
     }
 
     try {
-      const storageKey = STORAGE_KEYS[key];
+      const storageKey = this.getStorageKey(key);
       const serializedData = JSON.stringify(data);
       localStorage.setItem(storageKey, serializedData);
       return true;
@@ -77,7 +94,7 @@ export class StorageService {
     }
 
     try {
-      const storageKey = STORAGE_KEYS[key];
+      const storageKey = this.getStorageKey(key);
       const item = localStorage.getItem(storageKey);
       
       if (item === null) {
@@ -103,7 +120,7 @@ export class StorageService {
     }
 
     try {
-      const storageKey = STORAGE_KEYS[key];
+      const storageKey = this.getStorageKey(key);
       localStorage.removeItem(storageKey);
       return true;
     } catch (error) {
@@ -123,8 +140,9 @@ export class StorageService {
     }
 
     try {
-      Object.values(STORAGE_KEYS).forEach(key => {
-        localStorage.removeItem(key);
+      Object.keys(STORAGE_KEYS).forEach(key => {
+        const storageKey = this.getStorageKey(key as StorageKey);
+        localStorage.removeItem(storageKey);
       });
       return true;
     } catch (error) {
@@ -144,7 +162,7 @@ export class StorageService {
     }
 
     try {
-      const storageKey = STORAGE_KEYS[key];
+      const storageKey = this.getStorageKey(key);
       return localStorage.getItem(storageKey) !== null;
     } catch (error) {
       console.error(`Error checking localStorage item ${key}:`, error);
@@ -162,7 +180,7 @@ export class StorageService {
     }
 
     try {
-      return Object.values(STORAGE_KEYS);
+      return Object.keys(STORAGE_KEYS).map(key => this.getStorageKey(key as StorageKey));
     } catch (error) {
       console.error('Error getting storage keys:', error);
       return [];
@@ -180,8 +198,9 @@ export class StorageService {
 
     try {
       let used = 0;
-      Object.values(STORAGE_KEYS).forEach(key => {
-        const item = localStorage.getItem(key);
+      Object.keys(STORAGE_KEYS).forEach(key => {
+        const storageKey = this.getStorageKey(key as StorageKey);
+        const item = localStorage.getItem(storageKey);
         if (item) {
           used += item.length;
         }
@@ -444,5 +463,38 @@ export const storage = {
    */
   hasContactInfo: (): boolean => {
     return storageService.hasItem('CONTACT_INFO');
+  },
+
+  /**
+   * Store app initialized flag
+   * @param data - App initialized flag value
+   * @returns boolean indicating success
+   */
+  setAppInitialized: <T>(data: T): boolean => {
+    return storageService.setItem('APP_INITIALIZED', data);
+  },
+
+  /**
+   * Get app initialized flag
+   * @returns App initialized flag or null
+   */
+  getAppInitialized: <T>(): T | null => {
+    return storageService.getItem<T>('APP_INITIALIZED');
+  },
+
+  /**
+   * Remove app initialized flag
+   * @returns boolean indicating success
+   */
+  removeAppInitialized: (): boolean => {
+    return storageService.removeItem('APP_INITIALIZED');
+  },
+
+  /**
+   * Check if app initialized flag exists
+   * @returns boolean indicating if flag exists
+   */
+  hasAppInitialized: (): boolean => {
+    return storageService.hasItem('APP_INITIALIZED');
   }
 };

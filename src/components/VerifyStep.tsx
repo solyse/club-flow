@@ -47,8 +47,7 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }:
       const resp = await apiService.verifyAuth(payload);
       const ok = (resp as any)?.data?.success === true;
       if (ok) {
-        toast.success('Code verified successfully');
-        
+        toast.success('Code verified successfully');        
         // Check if partner exists
         let hasPartner = false;
         let partnerData = null;
@@ -74,11 +73,10 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }:
                 }
               }
             }
-          }else{
-            //store the partner data in localStorage
-            storage.setContactInfo(partnerPayload);
-            redirectToBooking();
           }
+           //store the partner data in localStorage
+           storage.setContactInfo(partnerPayload);
+           redirectToBooking();
         } catch (partnerErr) {
           // If partner check fails, assume no partner
           console.error('Error checking partner:', partnerErr);

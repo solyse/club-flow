@@ -101,7 +101,6 @@ const processShippingRates = (
     expedited: {} as any,
     overnight: {} as any,
   };
-
   if (isDomestic) {
     // Process domestic rates
     const serviceTypes =
@@ -266,7 +265,6 @@ export function ClubAccessComponent({
           isDomestic,
           shippingService
         );
-
         // Get transit times (use processed values or defaults)
         const transitTimes = {
           standard: shipperInfo.standard.transit_time || 5,
@@ -314,7 +312,7 @@ export function ClubAccessComponent({
             shipperInfo: shipperInfo.standard,
           },
         ];
-
+        
         setShippingOptions(options);
       } catch (error) {
         console.error('Error generating shipping options:', error);
@@ -328,23 +326,20 @@ export function ClubAccessComponent({
   }, [rates, quoteData, entryMode]);
 
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
-  
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     const raw = contact.trim();
-    if (!raw) return;
-
     if (isEmailMode) {
+      if (!raw) return;
       if (!validateEmail(raw)) {
         setError('Please enter a valid email address.');
         return;
       }
-    } 
-
+    }
 
     setIsLoading(true);
     setOtpError('');
@@ -355,8 +350,7 @@ export function ClubAccessComponent({
       // if (!isEmailMode && !phoneValue.startsWith('+')) {
       //   phoneValue = `+1${phoneValue}`;
       // }
-      const normalizedPhone = !isEmailMode ? phone.value: '';
-
+      const normalizedPhone = !isEmailMode ? phone.value : '';
       const payload = isEmailMode
         ? { email: raw }
         : { phone: normalizedPhone };
@@ -379,22 +373,21 @@ export function ClubAccessComponent({
       const otpSuccess = (otpResp as any)?.data?.success === true;
 
       if (otpSuccess) {
-        // Store selected shipping option in _bc_quote localStorage (only for QuickQuote mode)        
+        // Store selected shipping option in quote (only for QuickQuote mode)        
         if (entryMode === 'QuickQuote' && selectedShippingOption) {
           try {
-            const quoteStr = localStorage.getItem('_bc_quote');
-            if (quoteStr) {
-              const quote = JSON.parse(quoteStr);
-              quote.shipping_options = selectedShippingOption;
-              localStorage.setItem('_bc_quote', JSON.stringify(quote));
+            const quote = storage.getQuote<QuoteData>();
+            if (quote) {
+              (quote as any).shipping_options = selectedShippingOption;
+              storage.setQuote(quote);
             }
           } catch (error) {
-            console.error('Error updating _bc_quote with shipping option:', error);
+            console.error('Error updating quote with shipping option:', error);
           }
         }
 
         toast.success('Verification code sent!');
-        setContactInfo(contact);
+        setContactInfo(isEmailMode ? raw : normalizedPhone);
         setShowOtpVerification(true);
         setResendTimer(30);
         setCanResend(false);
@@ -461,27 +454,16 @@ export function ClubAccessComponent({
                 }
               }
             }
-          }else{
-            //store the partner data in localStorage
-            storage.setContactInfo(partnerPayload);
-            redirectToBooking();
           }
+          //store the partner data in localStorage
+          storage.setContactInfo(partnerPayload);
+          redirectToBooking();
         } catch (partnerErr) {
           // If partner check fails, assume no partner
           console.error('Error checking partner:', partnerErr);
           hasPartner = false;
         }
 
-        // If no partner, show registration step
-        // if (!hasPartner) {
-        //   // redirectToBooking();
-        //   // Store contact info for registration step
-        //   setContactInfo(contactInfo);         
-        //   // setShowRegisterStep(true);
-        // } else {
-        //   // Redirect to booking page
-        //   redirectToBooking();
-        // }
       } else {
         setOtpError((resp as any)?.data?.message || 'Invalid verification code');
         toast.error((resp as any)?.data?.message || 'Invalid verification code');
@@ -652,7 +634,7 @@ export function ClubAccessComponent({
                     <motion.button
                       key={option.id}
                       type="button"
-                      onClick={() => setSelectedShippingOption(option)}
+                      // onClick={() => setSelectedShippingOption(option)}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.25 + index * 0.1, duration: 0.4 }}
@@ -880,7 +862,7 @@ export function ClubAccessComponent({
 
                       {isEmailMode ? (
                         <Input
-                        autoFocus={true}
+                          autoFocus={true}
                           id="contact"
                           type="email"
                           placeholder="Enter your email"
@@ -896,7 +878,7 @@ export function ClubAccessComponent({
                           countryCode={phone.countryCode}
                           nationalNumber={phone.nationalNumber}
                         />
-                      
+
                       )}
 
                       <p className="text-sm text-gray-500 mt-2">
@@ -915,7 +897,10 @@ export function ClubAccessComponent({
                         type="button"
                         onClick={() => {
                           setIsEmailMode(!isEmailMode);
-                          setContact('');
+                          if (isEmailMode) {
+                            // Switching to phone mode - clear email
+                            setContact('');
+                          }
                         }}
                         className="text-sm text-[#C8A654] mt-2 hover:underline"
                       >

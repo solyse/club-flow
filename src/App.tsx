@@ -47,8 +47,7 @@ function App() {
 
   // Clear ITEMS_OWNER and ENRICHED_ITEMS on first app load only
   useEffect(() => {
-    const APP_INITIALIZED_KEY = '_bc_app_initialized';
-    const hasBeenInitialized = localStorage.getItem(APP_INITIALIZED_KEY);
+    const hasBeenInitialized = storage.hasAppInitialized();
     
     if (!hasBeenInitialized) {
       // First time app load - clear the data
@@ -56,7 +55,7 @@ function App() {
       storage.removeEnrichedItems();
       storage.removeContactInfo();
       // Mark that app has been initialized
-      localStorage.setItem(APP_INITIALIZED_KEY, 'true');
+      storage.setAppInitialized('true');
     }
   }, []);
 
@@ -271,12 +270,15 @@ function App() {
       setCurrentStep('verify');
     }
   };
+
+  
 // Common method to redirect to booking page
 const redirectToBooking = () => {
+  setCurrentStep('booking');
   storage.removeQuote();
-  localStorage.removeItem('_bc_app_initialized');
+  storage.removeAppInitialized();
   const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
-  // window.location.href = redirectUrl;
+  window.location.href = redirectUrl;
 };
   // Redirect to booking page when step is 'booking'
   useEffect(() => {
@@ -298,11 +300,7 @@ const redirectToBooking = () => {
           to={quoteData.to.name || quoteData.to.address}
           rates={shippingRates}
           quoteData={quoteData}
-          onComplete={(contactInfo) => {
-            setContactInfo(contactInfo);
-            // Handle completion - could redirect or proceed to next step
-            setCurrentStep('register');
-          }}
+          onComplete={handleAccessSubmit}
           onQRSuccess={handleQRSuccess}
           redirectToBooking={redirectToBooking}
         />
@@ -335,7 +333,7 @@ const redirectToBooking = () => {
        {/* Header */}
        <Header />
       <Loader isLoading={isInitialLoading || isLoadingRates} />
-      <Toaster />
+      <Toaster  position="top-right"/>
       {productsError && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2">
           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
