@@ -1160,6 +1160,48 @@ export class ApiService {
       return errorResponse;
     }
   }
+
+  /**
+   * Create Klaviyo event
+   * @param payload - Klaviyo event payload
+   * @returns Promise with response
+   */
+  public async createKlaviyoEvent(payload: {
+    email?: string;
+    phone_number?: string;
+    from_city: string;
+    to_city: string;
+    shipping_service: string;
+    location: {
+      ip: string;
+      latitude: number;
+      longitude: number;
+      city: string;
+      country: string;
+      zip: string;
+    };
+  }): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL}/klaviyo-create-event`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Klaviyo API Error:', error);
+      // Don't throw error - allow redirect to continue even if Klaviyo fails
+      return null;
+    }
+  }
 }
 
 // Export singleton instance

@@ -59,117 +59,163 @@ function App() {
     }
   }, []);
 
-  // Check for quote data on app load and calculate rates
+  // Load all initial data in strict sequential order
   useEffect(() => {
-    const loadQuoteAndRates = async () => {
-      try {
-        // Check for quote in storage
-        const quote = storage.getQuote<QuoteData>();
-        if (!quote) {
-          return;
+    const loadInitialData = async () => {
+      // 1. Load AS config (country codes) - cache-first
+      const loadAsConfig = async () => {
+        try {
+          const cached = storage.getCountryCodes<CountryCode[]>();
+          if (cached && cached.length) {
+            setCountryCodes(cached);
+            setLoadingComplete('asConfig');
+            return;
+          }
+          const resp = await apiService.getAsConfig();
+          if (resp?.data?.country_codes) {
+            setCountryCodes(resp.data.country_codes);
+            setLoadingComplete('asConfig');
+          }
+        } catch (e) {
+          console.error('Error loading AS config:', e);
+          setLoadingComplete('asConfig');
         }
-        
-        // Validate quote data has required fields
-        if (!quote.from || !quote.to) {
-          console.warn('Invalid quote data in localStorage');
-          return;
+      };
+
+      // 2. Load IP-based location - cache-first
+      const loadLocation = async () => {
+        try {
+          const cached = storage.getLocation<LocationInfo>();
+          if (cached) {
+            setCurrentLocation(cached);
+            setLoadingComplete('location');
+            return;
+          }
+
+          const resp = await apiService.getLocation();
+          if (resp?.data) {
+            setCurrentLocation(resp.data);
+          }
+          setLoadingComplete('location');
+        } catch (e) {
+          console.error('Error loading location:', e);
+          setLoadingComplete('location');
         }
+      };
 
-        // Always replace _bc_quotes with current _bc_quote
-        storage.setQuotes(quote);
+      // 3. Load products - cache-first
+      const loadProducts = async () => {
+        try {
+          setProductsError('');
+          
+          // Cache-first: check storage service
+          const cachedProducts = storage.getProducts<Product[]>();
+          if (cachedProducts && cachedProducts.length > 0) {
+            setCurrentProductList(cachedProducts);
+            setLoadingComplete('products');
+            return;
+          }
 
-        setQuoteData(quote);
-        setIsLoadingRates(true);
-        setRatesError(null);
-
-        // Prepare rates API payload
-        const ratesPayload = {
-          ship_from: {
-            street1: quote.from.street1,
-            city: quote.from.city,
-            state: quote.from.state,
-            postal_code: quote.from.postal_code,
-            country: quote.from.country,
-          },
-          ship_to: {
-            street1: quote.to.street1,
-            city: quote.to.city,
-            state: quote.to.state,
-            postal_code: quote.to.postal_code,
-            country: quote.to.country,
-          },
-          parcels: {
-            item_id: envConfig.itemId,
-            item_name: "Standard Golf bags",
-            quantity: 1,
-            dimensions: {
-              depth: '14',
-              height: '48',
-              weight: '48',
-              width: '14',
-            },
-          },
-        };
-
-        // Call rates API
-        const ratesResponse = await apiService.calculateRates(ratesPayload);
-
-        if (ratesResponse.data.success) {
-          setShippingRates(ratesResponse.data.rates);
-          setCurrentStep('quote');
-        } else {
-          const errorMessage = 'message' in ratesResponse.data 
-            ? ratesResponse.data.message 
-            : 'Failed to calculate rates';
-          setRatesError(errorMessage);
-          setCurrentStep('quote'); // Still show quote step to display error
-        }
-      } catch (error) {
-        console.error('Error loading quote and rates:', error);
-        setRatesError('Failed to load shipping rates. Please try again.');
-      } finally {
-        setIsLoadingRates(false);
-      }
-    };
-
-    loadQuoteAndRates();
-  }, []);
-
-  // Load products on app initialization
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setProductsError('');
-        
-        // Cache-first: check storage service
-        const cachedProducts = storage.getProducts<Product[]>();
-        if (cachedProducts && cachedProducts.length > 0) {
-          setCurrentProductList(cachedProducts);
+          // Fetch products from API
+          const response = await apiService.getProducts();
+          if (response.data && response.data.length > 0) {
+            setCurrentProductList(response.data);
+            // Cache for subsequent loads
+            storage.setProducts<Product[]>(response.data);
+          } else {
+            setProductsError('No products available');
+          }
           setLoadingComplete('products');
-          return;
+        } catch (error) {
+          console.error('Error loading products:', error);
+          setProductsError('Failed to load products');
+          setLoadingComplete('products');
         }
+      };
 
-        // Fetch products from API
-        const response = await apiService.getProducts();
-        if (response.data && response.data.length > 0) {
-          setCurrentProductList(response.data);
-          // Cache for subsequent loads
-          storage.setProducts<Product[]>(response.data);
-        } else {
-          setProductsError('No products available');
+      // 4. Load quote and rates
+      const loadQuoteAndRates = async () => {
+        try {
+          // Check for quote in storage
+          const quote = storage.getQuote<QuoteData>();
+          if (!quote) {
+            return;
+          }
+          
+          // Validate quote data has required fields
+          if (!quote.from || !quote.to) {
+            console.warn('Invalid quote data in storage');
+            return;
+          }
+
+          // Always replace _bc_quotes with current _bc_quote
+          storage.setQuotes(quote);
+
+          setQuoteData(quote);
+          setIsLoadingRates(true);
+          setRatesError(null);
+
+          // Prepare rates API payload
+          const ratesPayload = {
+            ship_from: {
+              street1: quote.from.street1,
+              city: quote.from.city,
+              state: quote.from.state,
+              postal_code: quote.from.postal_code,
+              country: quote.from.country,
+            },
+            ship_to: {
+              street1: quote.to.street1,
+              city: quote.to.city,
+              state: quote.to.state,
+              postal_code: quote.to.postal_code,
+              country: quote.to.country,
+            },
+            parcels: {
+              item_id: envConfig.itemId,
+              item_name: "Standard Golf bags",
+              quantity: 1,
+              dimensions: {
+                depth: '14',
+                height: '48',
+                weight: '48',
+                width: '14',
+              },
+            },
+          };
+
+          // Call rates API
+          const ratesResponse = await apiService.calculateRates(ratesPayload);
+
+          if (ratesResponse.data.success) {
+            setShippingRates(ratesResponse.data.rates);
+            setCurrentStep('quote');
+          } else {
+            const errorMessage = 'message' in ratesResponse.data 
+              ? ratesResponse.data.message 
+              : 'Failed to calculate rates';
+            setRatesError(errorMessage);
+            setCurrentStep('quote'); // Still show quote step to display error
+          }
+        } catch (error) {
+          console.error('Error loading quote and rates:', error);
+          setRatesError('Failed to load shipping rates. Please try again.');
+        } finally {
+          setIsLoadingRates(false);
         }
-      } catch (error) {
-        console.error('Error loading products:', error);
-        setProductsError('Failed to load products');
-      } finally {
-        setLoadingComplete('products');
-      }
+      };
+
+      // Execute in strict sequential order
+      await loadAsConfig();
+      await loadLocation();
+      await loadProducts();
+      await loadQuoteAndRates();
     };
 
-    loadProducts();
+    loadInitialData();
   }, [setLoadingComplete]);
 
-  // Load enriched items on app initialization
+  // Load enriched items on app initialization (independent)
   useEffect(() => {
     const loadEnrichedItems = () => {
       const storedItems = apiService.getStoredEnrichedItems();
@@ -180,53 +226,6 @@ function App() {
 
     loadEnrichedItems();
   }, []);
-
-  // Load IP-based location on app initialization (use cache first)
-  useEffect(() => {
-    const loadLocation = async () => {
-      try {
-        const cached = storage.getLocation<LocationInfo>();
-        if (cached) {
-          setCurrentLocation(cached);
-          setLoadingComplete('location');
-          return;
-        }
-
-        const resp = await apiService.getLocation();
-        if (resp?.data) {
-          setCurrentLocation(resp.data);
-        }
-      } catch (e) {
-        // ignore
-      } finally {
-        setLoadingComplete('location');
-      }
-    };
-    loadLocation();
-  }, [setLoadingComplete]);
-
-  // Load AS config (country codes) on app initialization (cache-first)
-  useEffect(() => {
-    const loadAsConfig = async () => {
-      try {
-        const cached = storage.getCountryCodes<CountryCode[]>();
-        if (cached && cached.length) {
-          setCountryCodes(cached);
-          setLoadingComplete('asConfig');
-          return;
-        }
-        const resp = await apiService.getAsConfig();
-        if (resp?.data?.country_codes) {
-          setCountryCodes(resp.data.country_codes);
-        }
-      } catch (e) {
-        // ignore
-      } finally {
-        setLoadingComplete('asConfig');
-      }
-    };
-    loadAsConfig();
-  }, [setLoadingComplete]);
 
   const handleAccessSubmit = (contact: string) => {
     setContactInfo(contact);
@@ -273,8 +272,50 @@ function App() {
 
   
 // Common method to redirect to booking page
-const redirectToBooking = () => {
+const redirectToBooking = async () => {
   setCurrentStep('booking');
+  
+  // Create Klaviyo event before redirecting
+  try {
+    // Get contact info from storage
+    const storedContactInfo = storage.getContactInfo<{ email?: string; phone?: string }>();
+    
+    // Get quote data (from state or storage)
+    const quote = quoteData || storage.getQuote<QuoteData & { shipping_options?: { id: string; title: string } }>();
+    
+    // Build Klaviyo payload if we have the required data
+    if (quote && quote.from && quote.to && currentLocation) {
+      const shippingService = 'Standard';
+      
+      const klaviyoPayload = {
+        email: storedContactInfo?.email,
+        phone_number: storedContactInfo?.phone,
+        from_city: quote.from.city || quote.from.name || '',
+        to_city: quote.to.city || quote.to.name || '',
+        shipping_service: shippingService,
+        location: {
+          ip: currentLocation.ip || '',
+          latitude: parseFloat(currentLocation.location.latitude || '0'),
+          longitude: parseFloat(currentLocation.location.longitude || '0'),
+          city: currentLocation.location.city || '',
+          country: currentLocation.location.country_name || '',
+          zip: currentLocation.location.zipcode || '',
+        },
+      };
+
+      // Call Klaviyo API before redirecting (with timeout to prevent blocking)
+      const klaviyoPromise = apiService.createKlaviyoEvent(klaviyoPayload);
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second timeout
+      
+      await Promise.race([klaviyoPromise, timeoutPromise]).catch((error) => {
+        console.error('Failed to create Klaviyo event:', error);
+      });
+    }
+  } catch (error) {
+    console.error('Error preparing Klaviyo event:', error);
+    // Continue with redirect even if Klaviyo fails
+  }
+
   storage.removeQuote();
   storage.removeAppInitialized();
   const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
@@ -331,7 +372,7 @@ const redirectToBooking = () => {
   return (
     <div className="min-h-screen bg-white">
        {/* Header */}
-       <Header />
+       <Header destination={quoteData?.to?.name || quoteData?.to?.address} />
       <Loader isLoading={isInitialLoading || isLoadingRates} />
       <Toaster  position="top-right"/>
       {productsError && (

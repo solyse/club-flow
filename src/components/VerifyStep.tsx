@@ -9,7 +9,7 @@ interface VerifyStepProps {
   contactInfo: string;
   onSubmit: (code: string, hasPartner: boolean) => void;
   onBack: () => void;
-  redirectToBooking: () => void;
+  redirectToBooking: () => void | Promise<void>;
 }
 
 export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }: VerifyStepProps) {

@@ -31,8 +31,16 @@ export const heroImages: Record<string, string> = {
   // Default fallback image for destinations not in the map
   export const defaultHeroImage = 'https://images.unsplash.com/photo-1605752019115-200d120c9b98?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xmJTIwY291cnNlJTIwc2NlbmljJTIwbGFuZHNjYXBlfGVufDF8fHx8MTc2MjAxNjE3M3ww&ixlib=rb-4.1.0&q=80&w=1080';
   
+  // Default hero video for destinations without specific hero images
+  export const defaultHeroVideo = 'https://cdn.shopify.com/videos/c/o/v/a12de26576ef4a2698375b7e0d5ed03a.mp4';
+  
   // Helper function to get hero image for a destination
   export function getHeroImage(destination: string): string {
     return heroImages[destination] || defaultHeroImage;
+  }
+  
+  // Helper function to check if a destination has a specific hero image
+  export function hasHeroImage(destination: string): boolean {
+    return !!heroImages[destination];
   }
   

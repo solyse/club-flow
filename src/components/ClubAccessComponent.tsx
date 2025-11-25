@@ -24,7 +24,7 @@ interface ClubAccessComponentProps {
   quoteData?: QuoteData;
   onComplete?: (contactInfo: string) => void;
   onQRSuccess?: (customerData: CustomerData) => void;
-  redirectToBooking?: () => void;
+  redirectToBooking?: () => void | Promise<void>;
 }
 
 interface ShippingOption {
