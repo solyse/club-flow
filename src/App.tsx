@@ -394,7 +394,7 @@ const redirectToBooking = async () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
-        <div className=" mx-auto" style={{ maxWidth: '480px' }}>
+        <div className=" mx-auto" style={{ maxWidth: '500px' }}>
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} />

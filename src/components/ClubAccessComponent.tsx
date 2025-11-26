@@ -13,6 +13,7 @@ import { ShippingRate, QuoteData, CustomerData, apiService } from '../services/a
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
 import { envConfig } from '../config/env';
 import { storage } from '../services/storage';
+import { WelcomeHeading } from './WelcomeHeading';
 import { QRScanModal } from './QRScanModal';
 import { RegisterStep } from './RegisterStep';
 import { Product } from '../services/api';
@@ -312,7 +313,7 @@ export function ClubAccessComponent({
             shipperInfo: shipperInfo.standard,
           },
         ];
-        
+
         setShippingOptions(options);
       } catch (error) {
         console.error('Error generating shipping options:', error);
@@ -686,7 +687,7 @@ export function ClubAccessComponent({
                       {/* Subtitle */}
                       <p
                         className="text-[#D4AF37] mb-2.5"
-                        style={{ fontSize: '13px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
+                        style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}
                       >
                         {option.subtitle}
                       </p>
@@ -720,21 +721,14 @@ export function ClubAccessComponent({
 
         {/* Welcome Section */}
         <div className="max-w-6xl mx-auto px-4 pt-0 pb-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-          >
-            <h2
-              className="text-[#111111] mb-3"
-              style={{ fontSize: '36px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
-            >
-              Welcome to BagCaddie Club
-            </h2>
-            <p className="text-gray-900 mb-4 px-2">
-              New or returning member — verify once and travel with ease.
-            </p>
-          </motion.div>
+          
+            <WelcomeHeading
+              style={{ color: '#111111' }}
+              title="Welcome to BagCaddie Club"
+              subheading="A concierge-level experience for smart travelers."
+              withAnimation={true}
+            />
+          
         </div>
 
         {/* Authentication Form or Register Step */}
@@ -857,6 +851,9 @@ export function ClubAccessComponent({
                 ) : (
                   /* Contact Input Form */
                   <form onSubmit={handleSubmit} className="space-y-5 bc-auth-form">
+                    <p className="text-gray-900 mb-4 px-2" style={{ fontSize: '13px' }}>
+                      New or returning member — verify once and travel with ease.
+                    </p>
                     <div className="mb-4">
                       <Label htmlFor="contact" className="mb-2 flex items-center gap-2">
                         {isEmailMode ? <Mail className="w-4 h-4 text-gray-500" /> : <Phone className="w-4 h-4 text-gray-500" />}
@@ -990,343 +987,5 @@ export function ClubAccessComponent({
       </div>
     );
   }
-  // return (
-  //   // <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-4 py-16" style={{ fontFamily: 'Inter, sans-serif' }}>
-  //   //   <div className="w-full max-w-5xl">
-  //   //     {/* Header */}
-  //   //     <motion.div
-  //   //       initial={{ opacity: 0, y: 20 }}
-  //   //       animate={{ opacity: 1, y: 0 }}
-  //   //       transition={{ duration: 0.5 }}
-  //   //       className="text-center mb-12"
-  //   //     >
-  //   //       <h1
-  //   //         className="text-[#111111] mb-3"
-  //   //         style={{
-  //   //           fontSize: 'clamp(32px, 4vw, 48px)',
-  //   //           fontWeight: 500,
-  //   //           fontFamily: 'Inter, sans-serif',
-  //   //           lineHeight: 1.2
-  //   //         }}
-  //   //       >
-  //   //         {currentContent.header}
-  //   //       </h1>
-  //   //       <p
-  //   //         className="text-[#666666] max-w-2xl mx-auto"
-  //   //         style={{ fontSize: '18px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-  //   //       >
-  //   //         {currentContent.subheading}
-  //   //       </p>
-  //   //     </motion.div>
 
-  //   //     {/* Quote Cards Section - Only shown in QuickQuote mode */}
-  //   //     {showQuoteCards && (
-  //   //       <motion.div
-  //   //         initial={{ opacity: 0, y: 30 }}
-  //   //         animate={{ opacity: 1, y: 0 }}
-  //   //         transition={{ duration: 0.5, delay: 0.15 }}
-  //   //         className="mb-12"
-  //   //       >
-  //   //         {/* Cards Grid */}
-  //   //         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-  //   //           {shippingOptions.length > 0 ? (
-  //   //             shippingOptions.map((option, index) => {
-  //   //               const isSelected = selectedShippingOption?.id === option.id;
-  //   //               return (
-  //   //                 <motion.button
-  //   //                   key={option.id}
-  //   //                   type="button"
-  //   //                   onClick={() => setSelectedShippingOption(option)}
-  //   //                   initial={{ opacity: 0, y: 20 }}
-  //   //                   animate={{ opacity: 1, y: 0 }}
-  //   //                   transition={{ delay: 0.25 + index * 0.1, duration: 0.4 }}
-  //   //                   className={`bg-white rounded-2xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.2)] transition-all duration-300 text-left w-full ${isSelected
-  //   //                     ? 'ring-2 ring-[#D4AF37] border-2 border-[#D4AF37] bg-[#FFF7E8]'
-  //   //                     : 'border-2 border-transparent hover:border-[#D4AF37]/30'
-  //   //                     }`}
-  //   //                 >
-  //   //                   {/* Icon and Title */}
-  //   //                   <div className="flex items-center justify-between mb-2.5">
-  //   //                     <div className="flex items-center gap-2.5">
-  //   //                       <div className={`flex items-center justify-center w-9 h-9 rounded-full ${isSelected ? 'bg-[#D4AF37]' : 'bg-[#D4AF37]/10'
-  //   //                         }`}>
-  //   //                         <option.icon
-  //   //                           className={`w-4.5 h-4.5 ${isSelected ? 'text-white' : 'text-[#D4AF37]'}`}
-  //   //                           strokeWidth={2}
-  //   //                         />
-  //   //                       </div>
-  //   //                       <h3
-  //   //                         className="text-[#111111]"
-  //   //                         style={{ fontSize: '18px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-  //   //                       >
-  //   //                         {option.title}
-  //   //                       </h3>
-  //   //                     </div>
-  //   //                     {/* Selection Indicator */}
-  //   //                     {isSelected && (
-  //   //                       <div className="w-5 h-5 rounded-full bg-[#D4AF37] flex items-center justify-center">
-  //   //                         <svg
-  //   //                           className="w-3 h-3 text-white"
-  //   //                           fill="none"
-  //   //                           stroke="currentColor"
-  //   //                           viewBox="0 0 24 24"
-  //   //                         >
-  //   //                           <path
-  //   //                             strokeLinecap="round"
-  //   //                             strokeLinejoin="round"
-  //   //                             strokeWidth={3}
-  //   //                             d="M5 13l4 4L19 7"
-  //   //                           />
-  //   //                         </svg>
-  //   //                       </div>
-  //   //                     )}
-  //   //                   </div>
-
-  //   //                   {/* Subtitle */}
-  //   //                   <p
-  //   //                     className="text-[#D4AF37] mb-2.5"
-  //   //                     style={{ fontSize: '13px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-  //   //                   >
-  //   //                     {option.subtitle}
-  //   //                   </p>
-
-  //   //                   {/* Price */}
-  //   //                   <div
-  //   //                     className="text-[#111111] mb-1.5"
-  //   //                     style={{ fontSize: '28px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
-  //   //                   >
-  //   //                     {option.price}
-  //   //                   </div>
-
-  //   //                   {/* Duration */}
-  //   //                   <p
-  //   //                     className="text-[#666666]"
-  //   //                     style={{ fontSize: '13px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-  //   //                   >
-  //   //                     {option.duration}
-  //   //                   </p>
-  //   //                 </motion.button>
-  //   //               );
-  //   //             })
-  //   //           ) : (
-  //   //             <div className="col-span-3 text-center py-8">
-  //   //               <p className="text-gray-600">No shipping rates available.</p>
-  //   //             </div>
-  //   //           )}
-  //   //         </div>
-  //   //       </motion.div>
-  //   //     )}
-  //   //     {/* Welcome Section */}
-  //   //     <div className="max-w-6xl mx-auto px-4 pt-0 pb-6 text-center">
-  //   //       <motion.div
-  //   //         initial={{ opacity: 0, y: 20 }}
-  //   //         animate={{ opacity: 1, y: 0 }}
-  //   //         transition={{ delay: 0.6, duration: 0.5 }}
-  //   //       >
-  //   //         <h2
-  //   //           className="text-[#111111] mb-3"
-  //   //           style={{ fontSize: '36px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
-  //   //         >
-  //   //           Welcome to BagCaddie Club
-  //   //         </h2>
-  //   //         <p
-  //   //           className="text-[#666666] max-w-2xl mx-auto"
-  //   //           style={{ fontSize: '18px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-  //   //         >
-  //   //           A concierge-level experience for golfers who travel smarter.
-  //   //         </p>
-  //   //       </motion.div>
-  //   //     </div>
-  //   //     {/* Authentication Form */}
-  //   //     <div className="max-w-6xl mx-auto px-4 pb-20">
-  //   //       <motion.div
-  //   //         initial={{ opacity: 0, y: 30 }}
-  //   //         animate={{ opacity: 1, y: 0 }}
-  //   //         transition={{ duration: 0.5, delay: 0.8 }}
-  //   //         className="max-w-lg mx-auto"
-  //   //       >
-  //   //         <div className="bg-white rounded-2xl border border-gray-200 px-8 pb-8 pt-8 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-  //   //           {/* OTP Verification Form */}
-  //   //           {showOtpVerification ? (
-  //   //             <form onSubmit={handleOtpVerification} className="space-y-5">
-  //   //               <div className="text-center mb-6">
-  //   //                 <h2
-  //   //                   className="text-[#111111] mb-2"
-  //   //                   style={{ fontSize: '24px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
-  //   //                 >
-  //   //                   Enter Verification Code
-  //   //                 </h2>
-  //   //                 <p
-  //   //                   className="text-[#666666]"
-  //   //                   style={{ fontSize: '14px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-  //   //                 >
-  //   //                   We sent a 6-digit code to {contactInfo}
-  //   //                 </p>
-  //   //               </div>
-
-  //   //               {/* OTP Input */}
-  //   //               <div className="flex justify-center">
-  //   //                 <InputOTP
-  //   //                   maxLength={6}
-  //   //                   value={otpCode}
-  //   //                   onChange={(value) => {
-  //   //                     setOtpCode(value);
-  //   //                     setOtpError('');
-  //   //                   }}
-  //   //                   autoFocus
-  //   //                 >
-  //   //                   <InputOTPGroup>
-  //   //                     <InputOTPSlot index={0} />
-  //   //                     <InputOTPSlot index={1} />
-  //   //                     <InputOTPSlot index={2} />
-  //   //                     <InputOTPSlot index={3} />
-  //   //                     <InputOTPSlot index={4} />
-  //   //                     <InputOTPSlot index={5} />
-  //   //                   </InputOTPGroup>
-  //   //                 </InputOTP>
-  //   //               </div>
-
-  //   //               {/* Error Message */}
-  //   //               {otpError && (
-  //   //                 <div className="text-center">
-  //   //                   <p className="text-red-600 text-sm">{otpError}</p>
-  //   //                 </div>
-  //   //               )}
-
-  //   //               {/* Resend Code */}
-  //   //               <div className="text-center">
-  //   //                 {canResend ? (
-  //   //                   <button
-  //   //                     type="button"
-  //   //                     onClick={handleResendOtp}
-  //   //                     disabled={isResending}
-  //   //                     className="text-[#D4AF37] hover:text-[#c29d2f] hover:underline transition-colors disabled:opacity-50"
-  //   //                     style={{ fontSize: '14px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-  //   //                   >
-  //   //                     {isResending ? 'Sending...' : 'Resend code'}
-  //   //                   </button>
-  //   //                 ) : (
-  //   //                   <p
-  //   //                     className="text-[#888888]"
-  //   //                     style={{ fontSize: '14px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-  //   //                   >
-  //   //                     Resend code in {resendTimer}s
-  //   //                   </p>
-  //   //                 )}
-  //   //               </div>
-
-  //   //               {/* Back Button */}
-  //   //               <div className="text-center">
-  //   //                 <button
-  //   //                   type="button"
-  //   //                   onClick={() => {
-  //   //                     setShowOtpVerification(false);
-  //   //                     setOtpCode('');
-  //   //                     setOtpError('');
-  //   //                     setResendTimer(30);
-  //   //                     setCanResend(false);
-  //   //                   }}
-  //   //                   className="text-[#888888] hover:text-[#111111] transition-colors"
-  //   //                   style={{ fontSize: '14px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-  //   //                 >
-  //   //                   ← Back
-  //   //                 </button>
-  //   //               </div>
-
-  //   //               {/* Verify Button */}
-  //   //               <button
-  //   //                 type="submit"
-  //   //                 disabled={isVerifying || otpCode.length !== 6}
-  //   //                 className="w-full h-14 bg-[#D4AF37] text-[#111111] rounded-xl hover:bg-[#C49A2E] hover:shadow-[0_6px_16px_rgba(212,175,55,0.4)] hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-  //   //                 style={{ fontSize: '16px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-  //   //               >
-  //   //                 {isVerifying ? (
-  //   //                   <>
-  //   //                     <div className="w-5 h-5 border-2 border-[#111111] border-t-transparent rounded-full animate-spin" />
-  //   //                     <span>Verifying...</span>
-  //   //                   </>
-  //   //                 ) : (
-  //   //                   <>
-  //   //                     <span>Verify & Continue</span>
-  //   //                     <ArrowRight className="w-5 h-5" />
-  //   //                   </>
-  //   //                 )}
-  //   //               </button>
-  //   //             </form>
-  //   //           ) : (
-  //   //             /* Contact Input Form */
-  //   //             <form onSubmit={handleSubmit} className="space-y-5 bc-auth-form">
-  //   //               {/* Input Field */}
-  //   //               <div className="relative">
-  //   //                 {inputMode === 'mobile' && (
-  //   //                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37] pointer-events-none">
-  //   //                     <Smartphone className="w-5 h-5" strokeWidth={2} />
-  //   //                   </div>
-  //   //                 )}
-  //   //                 <input
-  //   //                   ref={inputRef}
-  //   //                   type={inputMode === 'mobile' ? 'tel' : 'email'}
-  //   //                   value={value}
-  //   //                   onChange={(e) => setValue(e.target.value)}
-  //   //                   placeholder={inputMode === 'mobile' ? 'Enter mobile number' : 'Enter email address'}
-  //   //                   className={`w-full h-14 ${inputMode === 'mobile' ? 'pl-12' : 'pl-4'} pr-4 rounded-xl border border-[#E0E0E0] outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all text-[#111111] placeholder:text-[#999999]`}
-  //   //                   style={{ fontSize: '16px', fontFamily: 'Inter, sans-serif' }}
-  //   //                 />
-  //   //               </div>
-
-  //   //               {/* Toggle Link */}
-  //   //               <div className="text-center">
-  //   //                 <button
-  //   //                   type="button"
-  //   //                   onClick={() => {
-  //   //                     setInputMode(inputMode === 'mobile' ? 'email' : 'mobile');
-  //   //                     setValue('');
-  //   //                     setTimeout(() => {
-  //   //                       if (inputRef.current) {
-  //   //                         inputRef.current.focus();
-  //   //                       }
-  //   //                     }, 0);
-  //   //                   }}
-  //   //                   className="text-[#D4AF37] hover:text-[#c29d2f] hover:underline transition-colors"
-  //   //                   style={{ fontSize: '14px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-  //   //                 >
-  //   //                   Use {inputMode === 'mobile' ? 'email' : 'mobile'} instead
-  //   //                 </button>
-  //   //               </div>
-
-  //   //               {/* CTA Button */}
-  //   //               <button
-  //   //                 type="submit"
-  //   //                 disabled={isLoading}
-  //   //                 className="w-full h-14 bg-[#D4AF37] text-[#111111] rounded-xl hover:bg-[#C49A2E] hover:shadow-[0_6px_16px_rgba(212,175,55,0.4)] hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-  //   //                 style={{ fontSize: '16px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-  //   //               >
-  //   //                 {isLoading ? (
-  //   //                   <>
-  //   //                     <div className="w-5 h-5 border-2 border-[#111111] border-t-transparent rounded-full animate-spin" />
-  //   //                     <span>Processing...</span>
-  //   //                   </>
-  //   //                 ) : (
-  //   //                   <>
-  //   //                     <span>{currentContent.ctaText}</span>
-  //   //                     <ArrowRight className="w-5 h-5" />
-  //   //                   </>
-  //   //                 )}
-  //   //               </button>
-
-  //   //               {/* Helper Text */}
-  //   //               <p
-  //   //                 className="text-[#888888] text-center"
-  //   //                 style={{ fontSize: '13px', fontWeight: 400, fontFamily: 'Inter, sans-serif', lineHeight: 1.5 }}
-  //   //               >
-  //   //                 {currentContent.helperText}
-  //   //               </p>
-  //   //             </form>
-  //   //           )}
-  //   //         </div>
-  //   //       </motion.div>
-  //   //     </div>
-  //   //   </div>
-  //   // </div>
-  // );
 }

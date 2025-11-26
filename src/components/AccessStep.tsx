@@ -8,6 +8,7 @@ import { QRScanModal } from './QRScanModal';
 import { CustomerData, apiService } from '../services/api';
 import { PhoneInput } from './ui/PhoneInput';
 import { usePhoneValidation } from './usePhoneValidation';
+import { WelcomeHeading } from './WelcomeHeading';
 
 interface AccessStepProps {
   onSubmit: (contact: string) => void;
@@ -169,16 +170,13 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
   return (
     <>
       <div className="text-center mb-4 sm:mb-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
-          <h2 className="mb-4 sm:mb-6" style={{ fontSize: '36px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>Welcome to BagCaddie Club</h2>
-          <p className="text-gray-900 mb-4 px-2">
-            New or returning member — verify once and travel with ease.
-          </p>
-        </motion.div>
+      <WelcomeHeading
+              style={{ color: '#111111' }}
+              title="Welcome to BagCaddie Club"
+              subheading="Enter your mobile number to verify and continue your BagCaddie Club booking."
+              withAnimation={true}
+            />
+       
       </div>
 
       {/* Form Card */}
