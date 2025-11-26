@@ -24,6 +24,11 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
   const phone = usePhoneValidation();
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
 
+  // Compute form validity based on current mode
+  const isFormValid = isEmailMode
+    ? contact.trim() !== '' && validateEmail(contact.trim())
+    : phone.isValid;
+
   // Auto-focus email input when switching to email mode
   useEffect(() => {
     if (isEmailMode && emailInputRef.current) {
@@ -243,7 +248,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
             <Button
               type="submit"
               className="w-full bg-[#C8A654] hover:bg-[#B89544] text-white h-11 rounded-lg"
-              disabled={isLoading || (isEmailMode ? !contact.trim() : !phone.isValid)}
+              disabled={isLoading || !isFormValid}
             >
               {isLoading ? 'Checking…' : 'Continue'}
             </Button>

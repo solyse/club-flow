@@ -327,7 +327,10 @@ export function ClubAccessComponent({
 
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
 
-
+  // Compute form validity based on current mode
+  const isFormValid = isEmailMode
+    ? contact.trim() !== '' && validateEmail(contact.trim())
+    : phone.isValid;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -911,7 +914,7 @@ export function ClubAccessComponent({
                     <Button
                       type="submit"
                       className="w-full bg-[#C8A654] hover:bg-[#B89544] text-white h-11 rounded-lg"
-                      disabled={isLoading || (isEmailMode ? !contact.trim() : !phone.isValid)}
+                      disabled={isLoading || !isFormValid}
                     >
                       {isLoading ? 'Checking…' : 'Continue'}
                     </Button>
