@@ -5,10 +5,11 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { QRScanModal } from './QRScanModal';
-import { CustomerData, apiService } from '../services/api';
+import { CustomerData, apiService, LocationInfo } from '../services/api';
 import { PhoneInput } from './ui/PhoneInput';
 import { usePhoneValidation } from './usePhoneValidation';
 import { WelcomeHeading } from './WelcomeHeading';
+import { storage } from '../services/storage';
 
 interface AccessStepProps {
   onSubmit: (contact: string) => void;
@@ -22,7 +23,11 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const emailInputRef = useRef<HTMLInputElement>(null);
-  const phone = usePhoneValidation();
+  
+  // Get location from storage and extract calling code
+  const location = storage.getLocation<LocationInfo>();
+  const callingCode = location?.country_metadata?.calling_code || '+1';
+  const phone = usePhoneValidation(callingCode);
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
 
   // Compute form validity based on current mode
@@ -278,7 +283,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
                 Scan or Enter Your 8-Digit BagCaddie Tag Code
               </div>
               <div className="text-xs sm:text-sm text-gray-500">
-                If you already have a BagCaddie tag, scan or enter your code here.
+               If you already have a BagCaddie tag, scan or enter your code here.
               </div>
             </div>
           </div>

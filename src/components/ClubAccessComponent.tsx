@@ -9,7 +9,7 @@ import { PhoneInput } from './ui/PhoneInput';
 import { usePhoneValidation } from './usePhoneValidation';
 import { toast } from 'sonner';
 import { getHeroImage } from '../data/heroImages';
-import { ShippingRate, QuoteData, CustomerData, apiService } from '../services/api';
+import { ShippingRate, QuoteData, CustomerData, apiService, LocationInfo } from '../services/api';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
 import { envConfig } from '../config/env';
 import { storage } from '../services/storage';
@@ -17,6 +17,7 @@ import { WelcomeHeading } from './WelcomeHeading';
 import { QRScanModal } from './QRScanModal';
 import { RegisterStep } from './RegisterStep';
 import { Product } from '../services/api';
+import { HelpfulTipsCard } from './HelpfulTipsCard';
 interface ClubAccessComponentProps {
   entryMode: 'QuickQuote' | 'StartJourney';
   from?: string;
@@ -210,7 +211,11 @@ export function ClubAccessComponent({
     overnight: 1,
   });
   const inputRef = useRef<HTMLInputElement>(null);
-  const phone = usePhoneValidation();
+  
+  // Get location from storage and extract calling code
+  const location = storage.getLocation<LocationInfo>();
+  const callingCode = location?.country_metadata?.calling_code || '+1';
+  const phone = usePhoneValidation(callingCode);
   // Auto-focus the input field when component mounts
   useEffect(() => {
     if (inputRef.current && !showOtpVerification) {
@@ -549,7 +554,7 @@ export function ClubAccessComponent({
   const heroImageUrl = to ? getHeroImage(to) : getHeroImage('');
   if (entryMode === 'QuickQuote') {
     return (
-      <div className="min-h-screen bg-[#FAFAFA]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="min-h-screen bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* Hero Section with Background Image */}
         <div className="relative h-[60vh] min-h-[500px] w-full overflow-visible">
           {/* Background Image */}
@@ -947,7 +952,7 @@ export function ClubAccessComponent({
                   </div>
                 </div>
               </button>
-
+              <HelpfulTipsCard />
               {showQRScan && (
                 <QRScanModal
                   onClose={() => setShowQRScan(false)}

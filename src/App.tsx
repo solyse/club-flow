@@ -10,6 +10,7 @@ import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryC
 import { storage } from './services/storage';
 import { envConfig } from './config/env';
 import { ClubAccessComponent } from './components/ClubAccessComponent';
+import { HelpfulTipsCard } from './components/HelpfulTipsCard';
 
 type Step = 'access' | 'verify' | 'register' | 'booking' | 'quote';
 
@@ -51,9 +52,7 @@ function App() {
     
     if (!hasBeenInitialized) {
       // First time app load - clear the data
-      storage.removeItemsOwner();
-      storage.removeEnrichedItems();
-      storage.removeContactInfo();
+      storage.clearLocalStorage();
       // Mark that app has been initialized
       storage.setAppInitialized('true');
     }
@@ -398,6 +397,7 @@ const redirectToBooking = async () => {
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} />
+              <HelpfulTipsCard />
             </>
           )}
           

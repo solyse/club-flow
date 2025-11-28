@@ -474,15 +474,53 @@ export class ApiService {
       
       // Store customer data in localStorage on success
       if (this.isSuccessResponse(responseData)) {
-        const storageSuccess = storage.setItemsOwner(responseData.data.data);
+        const customerData = responseData.data.data;
+        
+        // Store customer data
+        const storageSuccess = storage.setItemsOwner(customerData);
         if (!storageSuccess) {
           console.warn('Failed to store customer data in localStorage');
         } else {
           console.log('Customer data stored successfully in localStorage');
         }
+        
+        // Find item with matching code and enrich/store it
+        const matchingItem = customerData.items.find(item => item.item_code === code);
+        if (matchingItem) {
+          try {
+            // Get current product list
+            let currentProductList = this.getStoredProducts();
+            
+            // If no products stored, fetch them
+            if (!currentProductList || currentProductList.length === 0) {
+              console.log('No products in storage, fetching from API...');
+              const productsResponse = await this.getProducts();
+              currentProductList = productsResponse.data;
+            }
 
-        // Process and enrich items with product data
-        await this.processAndStoreEnrichedItems(responseData.data.data, code);
+            if (!currentProductList || currentProductList.length === 0) {
+              console.error('No products available for item enrichment');
+            } else {
+              // Enrich only the matched item
+              const enrichedItem = await this.enrichItem(matchingItem, customerData, currentProductList);
+              if (enrichedItem) {
+                // Store only the matched enriched item
+                const storageSuccess = storage.setEnrichedItems([enrichedItem]);
+                if (storageSuccess) {
+                  console.log('Enriched item stored successfully in localStorage');
+                } else {
+                  console.warn('Failed to store enriched item in localStorage');
+                }
+              } else {
+                console.warn('Failed to enrich item');
+              }
+            }
+          } catch (error) {
+            console.error('Error processing enriched item:', error);
+          }
+        } else {
+          console.warn(`No item found with code: ${code}`);
+        }
       }
       
       return responseData;

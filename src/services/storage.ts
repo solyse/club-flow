@@ -3,8 +3,10 @@ import { envConfig } from '../config/env';
 
 // Storage keys constants
 export const STORAGE_KEYS = {
+  CLUB_PARTNER: "_bc_club_partner",
   PRODUCTS: "_bc_products",
   CLUB_FLOW_OWNER: "_bc_club_flow_owner",
+  ITEMS_OWNER: "_bc_items_owner",
   ENRICHED_ITEMS: "_bc_items",
   LOCATION: "_bc_location",
   COUNTRY_CODES: "_bc_country_codes",
@@ -238,6 +240,15 @@ export const storage = {
    */
   getItemsOwner: <T>(): T | null => {
     return storageService.getItem<T>('CLUB_FLOW_OWNER');
+  },
+  
+  clearLocalStorage: (): any => {
+    storageService.removeItem('CLUB_FLOW_OWNER');
+    storageService.removeItem('ENRICHED_ITEMS');
+    storageService.removeItem('QUOTES');
+    storageService.removeItem('ITEMS_OWNER');
+    storageService.removeItem('CLUB_PARTNER');
+    storageService.removeItem('CONTACT_INFO');
   },
 
   /**

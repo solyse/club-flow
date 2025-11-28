@@ -93,7 +93,6 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
 
   const handleContinue = async () => {
     if (!isCodeComplete) return;
-    
     setIsLoading(true);
     setError('');
     
@@ -103,8 +102,7 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
       
       if (apiService.isSuccessResponse(response)) {
         // Success - call the onSuccess callback with customer data
-        onSuccess?.(response.data.data);
-        
+        onSuccess?.(response.data.data);        
         onClose();
       } else {
         // Error - show error message

@@ -47,10 +47,12 @@ export const validateE164 = (value: string): boolean => {
 };
 
 
-export const usePhoneValidation = () => {
-  const [value, setValue] = useState("+1");
+export const usePhoneValidation = (initialCountryCode?: string | null) => {
+  // Default to +1 if no initial code provided
+  const defaultCode = initialCountryCode || "+1";
+  const [value, setValue] = useState(defaultCode);
   const [isValid, setIsValid] = useState(false);
-  const [countryCode, setCountryCode] = useState<string | null>("+1");
+  const [countryCode, setCountryCode] = useState<string | null>(defaultCode);
   const [nationalNumber, setNationalNumber] = useState("");
 
   const update = useCallback((input: string) => {
