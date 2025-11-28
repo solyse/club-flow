@@ -61,7 +61,7 @@ export function HelpfulTipsCard() {
     const Icon = tip.icon;
     const isCustomIcon = Icon === BagCaddieClubIcon;
     return (
-      <div key={index} className="flex gap-2.5 sm:gap-3">
+      <div key={index} className="flex gap-2.5 sm:gap-3 mt-3">
         <div className="flex-shrink-0 mt-0.5">
           {isCustomIcon ? (
             <div className="w-5 h-5 sm:w-6 sm:h-6">
@@ -87,9 +87,9 @@ export function HelpfulTipsCard() {
     <>
       {/* Main Tips Card */}
       <div className="w-full max-w-[480px] mx-auto mt-6 sm:mt-10">
-        <div className="bg-[#F9F9F9] rounded-xl p-4 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="rounded-xl p-4 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]" style={{ backgroundColor: '#F9F9F9' }}>
           {/* Header */}
-          <h3 className="mb-3 sm:mb-4 text-base sm:text-lg text-[#111111]">
+          <h3 className="mb-3 sm:mb-4 text-base sm:text-lg text-[#111111]" style={{ fontFamily: 'Nunito Sans, sans-serif' }}>
             Helpful to Know Before You Ship
           </h3>
 
@@ -99,39 +99,8 @@ export function HelpfulTipsCard() {
             {mainTips.map((tip, index) => renderTip(tip, index))}
             
             {/* BagCaddie Club tip - only on desktop (≥768px) */}
-            <div className="hidden md:block">
+            <div>
               {renderTip(bagCaddieClubTip, 3)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Standalone BagCaddie Club Card - only on mobile (<768px) */}
-      <div className="block md:hidden w-full max-w-[480px] mx-auto mt-6">
-        <div className="bg-[#F9F9F9] rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-          <div className="flex gap-3 items-start">
-            <div className="flex-shrink-0 mt-0.5">
-              <div className="w-6 h-6">
-                <BagCaddieClubIcon />
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="text-base font-semibold text-[#111111] mb-1.5">
-                BagCaddie Club
-              </div>
-              <div className="text-[15px] text-[#6B7280] leading-relaxed mb-2">
-                Prefer a concierge experience?
-              </div>
-              <div className="text-[15px] text-[#6B7280] leading-relaxed mb-2">
-                Let your home club handle printing, packing, and pickup through the BagCaddie Club Partner program.
-              </div>
-              <a 
-                href="#" 
-                className="inline-block text-[15px] text-[#C8A654] hover:underline mt-1 min-h-[44px] py-2"
-                aria-label="Refer your home club to become a BagCaddie Partner"
-              >
-                Refer your home club to become a partner →
-              </a>
             </div>
           </div>
         </div>
