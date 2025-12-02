@@ -51,7 +51,7 @@ export const PhoneInput = ({
 
     return (
         <>
-            <div className="flex gap-1 mb-3">
+            <div className="flex gap-1 mb-3 bc-phone-input">
                 {/* Country Code Selector */}
                 <CountryCodeSelector
                     value={getCountryAbbreviation(countryCode)}
@@ -73,7 +73,7 @@ export const PhoneInput = ({
                         onChange(newValue);
                     }}
                     className="flex-1 h-[52px] px-4 rounded-lg border border-[#E0E0E0] outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all text-[#111111] placeholder:text-[#999999]"
-                    style={{ fontSize: '15px', fontFamily: 'Inter, sans-serif' }}
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                     placeholder="Enter your mobile number"
                 />
             </div>

@@ -100,6 +100,10 @@ export interface CustomerData {
   vip_membership_start_date: string;
   vip_membership_end_date: string;
   items: Item[];
+  club_id?: string | null;
+  item_id?: string | null;
+  customer_id?: string | null;
+  type?: string;
 }
 
 export interface QRCodeSuccessResponse {
@@ -219,6 +223,10 @@ export interface CustomerSuccessResponse {
     success: true;
     message: string;
     data: {
+      club_id: string;
+      item_id: string;
+      customer_id: string;
+      type: string;
       id: string;
       email: string;
       phone: string;
@@ -471,11 +479,11 @@ export class ApiService {
       }
 
       const responseData: QRCodeResponse = await response.json();
-      
+
       // Store customer data in localStorage on success
       if (this.isSuccessResponse(responseData)) {
         const customerData = responseData.data.data;
-        
+
         // Store customer data
         const storageSuccess = storage.setItemsOwner(customerData);
         if (!storageSuccess) {
@@ -483,50 +491,57 @@ export class ApiService {
         } else {
           console.log('Customer data stored successfully in localStorage');
         }
-        
-        // Find item with matching code and enrich/store it
-        const matchingItem = customerData.items.find(item => item.item_code === code);
-        if (matchingItem) {
-          try {
-            // Get current product list
-            let currentProductList = this.getStoredProducts();
-            
-            // If no products stored, fetch them
-            if (!currentProductList || currentProductList.length === 0) {
-              console.log('No products in storage, fetching from API...');
-              const productsResponse = await this.getProducts();
-              currentProductList = productsResponse.data;
-            }
 
-            if (!currentProductList || currentProductList.length === 0) {
-              console.error('No products available for item enrichment');
-            } else {
-              // Enrich only the matched item
-              const enrichedItem = await this.enrichItem(matchingItem, customerData, currentProductList);
-              if (enrichedItem) {
-                // Store only the matched enriched item
-                const storageSuccess = storage.setEnrichedItems([enrichedItem]);
-                if (storageSuccess) {
-                  console.log('Enriched item stored successfully in localStorage');
-                } else {
-                  console.warn('Failed to store enriched item in localStorage');
-                }
-              } else {
-                console.warn('Failed to enrich item');
+        // Find item with matching code and enrich/store it
+        if (customerData.items && customerData.items.length > 0) {
+          const matchingItem = customerData.items.find(item => item.item_code === code);
+          if (matchingItem) {
+            try {
+              // Get current product list
+              let currentProductList = this.getStoredProducts();
+
+              // If no products stored, fetch them
+              if (!currentProductList || currentProductList.length === 0) {
+                console.log('No products in storage, fetching from API...');
+                const productsResponse = await this.getProducts();
+                currentProductList = productsResponse.data;
               }
+
+              if (!currentProductList || currentProductList.length === 0) {
+                console.error('No products available for item enrichment');
+              } else {
+                // Enrich only the matched item
+                const enrichedItem = await this.enrichItem(matchingItem, customerData, currentProductList);
+                if (enrichedItem) {
+                  // Store only the matched enriched item
+                  const storageSuccess = storage.setEnrichedItems([enrichedItem]);
+                  if (storageSuccess) {
+                    console.log('Enriched item stored successfully in localStorage');
+                  } else {
+                    console.warn('Failed to store enriched item in localStorage');
+                  }
+                } else {
+                  console.warn('Failed to enrich item');
+                }
+              }
+            } catch (error) {
+              console.error('Error processing enriched item:', error);
             }
-          } catch (error) {
-            console.error('Error processing enriched item:', error);
+          } else {
+            console.warn(`No item found with code: ${code}`);
           }
         } else {
-          console.warn(`No item found with code: ${code}`);
+          if (customerData.club_id !== null && customerData.item_id === null && customerData.customer_id === null && customerData.type === "item") {
+            window.location.href = `${envConfig.websiteUrl}/pages/member-signup?clubId=${customerData.club_id}&code=${code}`;
+
+          }
         }
       }
-      
+
       return responseData;
     } catch (error) {
       console.error('API Error:', error);
-      
+
       // Return a structured error response
       const errorResponse: QRCodeErrorResponse = {
         x: 400,
@@ -539,7 +554,7 @@ export class ApiService {
         memory: '0',
         epsid: '',
       };
-      
+
       return errorResponse;
     }
   }
@@ -607,11 +622,11 @@ export class ApiService {
       }
 
       const data: ProductsResponse = await response.json();
-      
+
       return data;
     } catch (error) {
       console.error('Products API Error:', error);
-      
+
       // Return a structured error response
       const errorResponse: ProductsResponse = {
         x: 400,
@@ -621,7 +636,7 @@ export class ApiService {
         memory: '0',
         core_version: 'v10.0'
       };
-      
+
       return errorResponse;
     }
   }
@@ -790,13 +805,13 @@ export class ApiService {
       }
 
       const data: CustomerResponse = await response.json();
-      
+
       // Store customer data and enriched items on success or if customer exists
       if (data.data.success) {
         // Success response
         const successData = data as CustomerSuccessResponse;
         const customerData = successData.data.data;
-        
+
         // Convert to CustomerData format for storage
         const customerDataForStorage: CustomerData = {
           id: customerData.id,
@@ -816,9 +831,9 @@ export class ApiService {
             item_code: successData.data.items.item_code,
           }] : [],
         };
-        
+
         storage.setItemsOwner(customerDataForStorage);
-        
+
         // Process and enrich items if item_code is available
         if (successData.data.items?.item_code) {
           await this.processAndStoreEnrichedItems(customerDataForStorage, successData.data.items.item_code);
@@ -827,11 +842,11 @@ export class ApiService {
         // Customer exists response
         const errorData = data as CustomerErrorResponse;
         const customerData = errorData.data.data;
-        
+
         if (customerData) {
           // Store items owner
           storage.setItemsOwner(customerData);
-          
+
           // Process and enrich items if items are returned
           if (customerData.items && customerData.items.length > 0) {
             const codeToUse = customerData.items[0]?.item_code;
@@ -841,7 +856,7 @@ export class ApiService {
           }
         }
       }
-      
+
       return data;
     } catch (error) {
       console.error('Create Customer API Error:', error);
@@ -932,7 +947,7 @@ export class ApiService {
     try {
       // Get current product list
       let currentProductList = this.getStoredProducts();
-      
+
       // If no products stored, fetch them
       if (!currentProductList || currentProductList.length === 0) {
         console.log('No products in storage, fetching from API...');
@@ -947,7 +962,7 @@ export class ApiService {
 
       // Find items that match the QR code
       const matchingItems = customerData.items.filter(item => item.item_code === qrCode);
-      
+
       if (matchingItems.length === 0) {
         console.warn(`No items found for QR code: ${qrCode}`);
         return;
@@ -955,7 +970,7 @@ export class ApiService {
 
       // Process each matching item
       const enrichedItems: EnrichedItem[] = [];
-      
+
       for (const item of matchingItems) {
         const enrichedItem = await this.enrichItem(item, customerData, currentProductList);
         if (enrichedItem) {
@@ -988,14 +1003,14 @@ export class ApiService {
     try {
       // Find product by item_id
       const productIndex = findIndexByKeyValue(productList, 'id', item.item_id);
-      
+
       if (productIndex === -1) {
         console.warn(`Product not found for item_id: ${item.item_id}`);
         return null;
       }
 
       const product = productList[productIndex];
-      
+
       // Create enriched item
       const enrichedItem: EnrichedItem = {
         item_id: item.item_id,
@@ -1034,12 +1049,12 @@ export class ApiService {
    */
   private mergeEnrichedItems(existingItems: EnrichedItem[], newItems: EnrichedItem[]): EnrichedItem[] {
     const mergedItems = [...existingItems];
-    
+
     for (const newItem of newItems) {
       const existingItemIndex = mergedItems.findIndex(
         item => item.item_code === newItem.item_code
       );
-      
+
       if (existingItemIndex !== -1) {
         // Update existing item
         mergedItems[existingItemIndex] = {
@@ -1053,7 +1068,7 @@ export class ApiService {
         mergedItems.push({ ...newItem });
       }
     }
-    
+
     return mergedItems;
   }
 
@@ -1089,14 +1104,14 @@ export class ApiService {
     try {
       // Convert PartnerData to CustomerData format
       // Handle addresses: can be an object or array
-      const addressesArray = Array.isArray(partnerData.addresses) 
-        ? partnerData.addresses 
-        : partnerData.addresses 
+      const addressesArray = Array.isArray(partnerData.addresses)
+        ? partnerData.addresses
+        : partnerData.addresses
           ? [partnerData.addresses]
           : [];
-      
-      const defaultAddr = partnerData.defaultAddress || (Array.isArray(partnerData.addresses) 
-        ? partnerData.addresses[0] 
+
+      const defaultAddr = partnerData.defaultAddress || (Array.isArray(partnerData.addresses)
+        ? partnerData.addresses[0]
         : partnerData.addresses) || {};
 
       const customerData: CustomerData = {
@@ -1117,7 +1132,7 @@ export class ApiService {
 
       // Get current product list
       let currentProductList = this.getStoredProducts();
-      
+
       // If no products stored, fetch them
       if (!currentProductList || currentProductList.length === 0) {
         console.log('No products in storage, fetching from API...');
@@ -1137,14 +1152,14 @@ export class ApiService {
 
       // Process all items (not filtered by QR code)
       const enrichedItems: EnrichedItem[] = [];
-      
+
       for (const item of customerData.items) {
         const enrichedItem = await this.enrichItem(item, customerData, currentProductList);
         if (enrichedItem) {
           enrichedItems.push(enrichedItem);
         }
       }
-      
+
 
       // Store enriched items (replace existing, don't merge)
       if (enrichedItems.length > 0) {

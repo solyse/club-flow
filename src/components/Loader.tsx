@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-
+import { AnimatePresence } from 'framer-motion';
+import { RateSpinnerOverlay } from './RateSpinnerOverlay';
 interface LoaderProps {
   isLoading: boolean;
 }
@@ -21,9 +22,9 @@ export function Loader({ isLoading }: LoaderProps) {
   if (!isLoading) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/95 backdrop-blur-sm"
-      style={{ 
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm"
+      style={{
         pointerEvents: 'all',
         userSelect: 'none',
         touchAction: 'none',
@@ -57,7 +58,11 @@ export function Loader({ isLoading }: LoaderProps) {
       aria-modal="true"
       aria-label="Loading application"
     >
-      <div className="flex flex-col items-center gap-4">
+      {/* Spinner Screen */}
+      <AnimatePresence>
+        <RateSpinnerOverlay />
+      </AnimatePresence>
+      {/* <div className="flex flex-col items-center gap-4">
         <div className="relative">
           <Loader2 className="w-12 h-12 text-[#C8A654] animate-spin" />
         </div>
@@ -69,7 +74,7 @@ export function Loader({ isLoading }: LoaderProps) {
             Please wait...
           </p>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

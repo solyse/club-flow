@@ -82,8 +82,8 @@ export function CountryCodeSelector({ value, onChange }: CountryCodeSelectorProp
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="appearance-none w-[135px] h-[52px] px-3 pr-4 rounded-lg border border-[#E0E0E0] outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all bg-white text-[#111111] cursor-pointer flex items-center gap-2"
-        style={{ fontSize: '15px', fontWeight: 400, fontFamily: 'Inter, sans-serif',padding: '.8em 15px .8em 15px' }}
+        className="appearance-none h-[52px] px-3 pr-4 rounded-lg border border-[#E0E0E0] outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all bg-white text-[#111111] cursor-pointer flex items-center gap-2 country-code-selector-btn"
+        style={{ fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
       >
         <span className="text-lg">{selectedCountry.flag}</span>
         <span>{selectedCountry.abbreviation}</span>

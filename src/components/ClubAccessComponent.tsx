@@ -9,7 +9,7 @@ import { PhoneInput } from './ui/PhoneInput';
 import { usePhoneValidation } from './usePhoneValidation';
 import { toast } from 'sonner';
 import { getHeroImage } from '../data/heroImages';
-import { ShippingRate, QuoteData, CustomerData, apiService, LocationInfo } from '../services/api';
+import { ShippingRate, QuoteData, CustomerData, apiService, LocationInfo, AsConfigData } from '../services/api';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
 import { envConfig } from '../config/env';
 import { storage } from '../services/storage';
@@ -17,13 +17,16 @@ import { WelcomeHeading } from './WelcomeHeading';
 import { QRScanModal } from './QRScanModal';
 import { RegisterStep } from './RegisterStep';
 import { Product } from '../services/api';
+import { RateFallback } from './RateFallback';
 import { HelpfulTipsCard } from './HelpfulTipsCard';
 interface ClubAccessComponentProps {
+  ratesError?: string;
   entryMode: 'QuickQuote' | 'StartJourney';
   from?: string;
   to?: string;
   rates?: ShippingRate[];
   quoteData?: QuoteData;
+  asConfigData?: AsConfigData | null;
   onComplete?: (contactInfo: string) => void;
   onQRSuccess?: (customerData: CustomerData) => void;
   redirectToBooking?: () => void | Promise<void>;
@@ -173,11 +176,13 @@ const processShippingRates = (
 };
 
 export function ClubAccessComponent({
+  ratesError,
   entryMode,
   from,
   to,
   rates,
   quoteData,
+  asConfigData,
   onComplete,
   onQRSuccess,
   redirectToBooking
@@ -211,7 +216,7 @@ export function ClubAccessComponent({
     overnight: 1,
   });
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   // Get location from storage and extract calling code
   const location = storage.getLocation<LocationInfo>();
   const callingCode = location?.country_metadata?.calling_code || '+1';
@@ -255,10 +260,9 @@ export function ClubAccessComponent({
       }
 
       try {
-        // Get AS config to determine shipping service
-        const asConfigResp = await apiService.getAsConfig();
+        // Use AS config from props (loaded once in App.tsx)
         const shippingService =
-          (asConfigResp?.data?.rates as any)?.shipping_service || 'fedex';
+          (asConfigData?.rates as any)?.shipping_service || 'fedex';
 
         // Determine if shipping is domestic (same country)
         const isDomestic =
@@ -633,107 +637,112 @@ export function ClubAccessComponent({
         </div>
 
         {/* Quote Cards - Half in hero, half out */}
-        <div className="relative -mt-24 z-20 px-4 pb-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {shippingOptions.length > 0 ? (
-                shippingOptions.map((option, index) => {
-                  const isSelected = selectedShippingOption?.id === option.id;
-                  return (
-                    <motion.button
-                      key={option.id}
-                      type="button"
-                      // onClick={() => setSelectedShippingOption(option)}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 + index * 0.1, duration: 0.4 }}
-                      className={`bg-white rounded-2xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.2)] transition-all duration-300 text-left w-full ${isSelected
-                        ? 'ring-2 ring-[#D4AF37] border-2 border-[#D4AF37] bg-[#FFF7E8]'
-                        : 'border-2 border-transparent hover:border-[#D4AF37]/30'
-                        }`}
-                    >
-                      {/* Icon and Title */}
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`flex items-center justify-center w-9 h-9 rounded-full ${isSelected ? 'bg-[#D4AF37]' : 'bg-[#D4AF37]/10'
-                            }`}>
-                            <option.icon
-                              className={`w-4.5 h-4.5 ${isSelected ? 'text-white' : 'text-[#D4AF37]'}`}
-                              strokeWidth={2}
-                            />
+        {ratesError ? (
+          <>
+            <RateFallback
+              entryMode="QuickQuote"              
+            />
+          </>
+        ) : (
+          <>
+            <div className="relative -mt-24 z-20 px-4 pb-8">
+              <div className="max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {shippingOptions.length > 0 && (
+                    shippingOptions.map((option, index) => {
+                      const isSelected = selectedShippingOption?.id === option.id;
+                      return (
+                        <motion.button
+                          key={option.id}
+                          type="button"
+                          // onClick={() => setSelectedShippingOption(option)}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.25 + index * 0.1, duration: 0.4 }}
+                          className={`bg-white rounded-2xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.2)] transition-all duration-300 text-left w-full ${isSelected
+                            ? 'ring-2 ring-[#D4AF37] border-2 border-[#D4AF37] bg-[#FFF7E8]'
+                            : 'border-2 border-transparent hover:border-[#D4AF37]/30'
+                            }`}
+                        >
+                          {/* Icon and Title */}
+                          <div className="flex items-center justify-between mb-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`flex items-center justify-center w-9 h-9 rounded-full ${isSelected ? 'bg-[#D4AF37]' : 'bg-[#D4AF37]/10'
+                                }`}>
+                                <option.icon
+                                  className={`w-4.5 h-4.5 ${isSelected ? 'text-white' : 'text-[#D4AF37]'}`}
+                                  strokeWidth={2}
+                                />
+                              </div>
+                              <h3
+                                className="text-[#111111]"
+                                style={{ fontSize: '18px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
+                              >
+                                {option.title}
+                              </h3>
+                            </div>
+                            {/* Selection Indicator */}
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-[#D4AF37] flex items-center justify-center">
+                                <svg
+                                  className="w-3 h-3 text-white"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={3}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              </div>
+                            )}
                           </div>
-                          <h3
-                            className="text-[#111111]"
-                            style={{ fontSize: '18px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
+
+                          {/* Subtitle */}
+                          <p
+                            className="text-[#D4AF37] mb-2.5"
+                            style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}
                           >
-                            {option.title}
-                          </h3>
-                        </div>
-                        {/* Selection Indicator */}
-                        {isSelected && (
-                          <div className="w-5 h-5 rounded-full bg-[#D4AF37] flex items-center justify-center">
-                            <svg
-                              className="w-3 h-3 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
+                            {option.subtitle}
+                          </p>
+
+                          {/* Price */}
+                          <div
+                            className="text-[#111111] mb-1.5"
+                            style={{ fontSize: '28px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
+                          >
+                            {option.price}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Subtitle */}
-                      <p
-                        className="text-[#D4AF37] mb-2.5"
-                        style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}
-                      >
-                        {option.subtitle}
-                      </p>
-
-                      {/* Price */}
-                      <div
-                        className="text-[#111111] mb-1.5"
-                        style={{ fontSize: '28px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
-                      >
-                        {option.price}
-                      </div>
-
-                      {/* Duration */}
-                      <p
-                        className="text-[#666666]"
-                        style={{ fontSize: '13px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-                      >
-                        {option.duration}
-                      </p>
-                    </motion.button>
-                  );
-                })
-              ) : (
-                <div className="col-span-3 text-center py-8">
-                  <p className="text-gray-600">No shipping rates available.</p>
+                          {/* Duration */}
+                          <p
+                            className="text-[#666666]"
+                            style={{ fontSize: '13px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
+                          >
+                            {option.duration}
+                          </p>
+                        </motion.button>
+                      );
+                    })
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
+
 
         {/* Welcome Section */}
         <div className="max-w-6xl mx-auto px-4 pt-0 pb-6 text-center">
-          
-            <WelcomeHeading
-              style={{ color: '#111111' }}
-              title="Welcome to BagCaddie Club"
-              subheading="A concierge-level experience for smart travelers."
-              withAnimation={true}
-            />
-          
+          <WelcomeHeading
+            style={{ color: '#111111' }}
+            title="Welcome to BagCaddie Club"
+            subheading="A concierge-level experience for smart travelers."
+            withAnimation={true}
+          />
         </div>
 
         {/* Authentication Form or Register Step */}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { QRScannerRef } from './QRScanner';
 import { Camera, Hash, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -91,7 +91,7 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
 
   const isCodeComplete = code.every(digit => digit !== '');
 
-  const handleContinue = async () => {
+  const handleContinue = useCallback(async () => {
     if (!isCodeComplete) return;
     setIsLoading(true);
     setError('');
@@ -114,7 +114,24 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [code, isCodeComplete, onSuccess, onClose]);
+
+  // Handle Enter key press to trigger Continue
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (mode === 'enter' && e.key === 'Enter' && isCodeComplete && !isLoading) {
+        e.preventDefault();
+        handleContinue();
+      }
+    };
+
+    if (mode === 'enter') {
+      window.addEventListener('keydown', handleKeyPress);
+      return () => {
+        window.removeEventListener('keydown', handleKeyPress);
+      };
+    }
+  }, [mode, isCodeComplete, isLoading, handleContinue]);
 
   // Cleanup scanner when modal closes
   const handleModalClose = () => {

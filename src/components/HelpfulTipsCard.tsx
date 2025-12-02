@@ -47,7 +47,7 @@ export function HelpfulTipsCard() {
         <br />
         Let your home club handle printing, packing, and pickup through the BagCaddie Club Partner program.{' '}
         <a 
-          href="#" 
+          href="/pages/join-bagcaddie-club" 
           className="text-[#C8A654] hover:underline"
           aria-label="Refer your home club to become a BagCaddie Partner"
         >
