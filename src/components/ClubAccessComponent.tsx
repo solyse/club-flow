@@ -127,48 +127,51 @@ const processShippingRates = (
         ? rates.find((r) => type.includes(r.service_type))
         : rates.find((r) => r.service_type === type);
 
-      if (rate) {
-        prices[service as keyof typeof prices] = parseFloat(
-          String(rate.bc_actual_costs.amount)
-        );
-        vip_discount[service as keyof typeof vip_discount] =
-          (rate.bc_actual_costs as any).vip_discount || null;
-        shipperInfo[service as keyof typeof shipperInfo] = {
+      if (rate && rate.bc_actual_costs && rate.bc_actual_costs.amount !== undefined && rate.bc_actual_costs.amount !== null) {
+        const amount = parseFloat(String(rate.bc_actual_costs.amount));
+        if (!isNaN(amount) && amount > 0) {
+          prices[service as keyof typeof prices] = amount;
+          vip_discount[service as keyof typeof vip_discount] =
+            (rate.bc_actual_costs as any).vip_discount || null;
+          shipperInfo[service as keyof typeof shipperInfo] = {
+            shipper_id: rate.shipper_account.id,
+            service_name: rate.service_name,
+            service_type: rate.service_type,
+            charge_weight: rate.charge_weight,
+            detailed_charges: rate.detailed_charges,
+            total_charge: rate.total_charge,
+            delivery_date: rate.delivery_date,
+            transit_time: rate.transit_time,
+          };
+        }
+      }
+    });
+  } else {
+    // Process international rates
+    const rate = rates[0];
+    if (rate && rate.bc_actual_costs && rate.bc_actual_costs.amount !== undefined && rate.bc_actual_costs.amount !== null) {
+      const amount = parseFloat(String(rate.bc_actual_costs.amount));
+      if (!isNaN(amount) && amount > 0) {
+        prices.standard = amount;
+        prices.expedited = amount;
+        prices.overnight = amount;
+        vip_discount.standard = (rate.bc_actual_costs as any).vip_discount || null;
+        vip_discount.expedited = (rate.bc_actual_costs as any).vip_discount || null;
+        vip_discount.overnight = (rate.bc_actual_costs as any).vip_discount || null;
+        const shipperData = {
           shipper_id: rate.shipper_account.id,
-          service_name: rate.service_name,
           service_type: rate.service_type,
+          service_name: rate.service_name,
           charge_weight: rate.charge_weight,
           detailed_charges: rate.detailed_charges,
           total_charge: rate.total_charge,
           delivery_date: rate.delivery_date,
           transit_time: rate.transit_time,
         };
+        shipperInfo.standard = shipperData;
+        shipperInfo.expedited = shipperData;
+        shipperInfo.overnight = shipperData;
       }
-    });
-  } else {
-    // Process international rates
-    const rate = rates[0];
-    if (rate) {
-      const amount = parseFloat(String(rate.bc_actual_costs.amount));
-      prices.standard = amount;
-      prices.expedited = amount;
-      prices.overnight = amount;
-      vip_discount.standard = (rate.bc_actual_costs as any).vip_discount || null;
-      vip_discount.expedited = (rate.bc_actual_costs as any).vip_discount || null;
-      vip_discount.overnight = (rate.bc_actual_costs as any).vip_discount || null;
-      const shipperData = {
-        shipper_id: rate.shipper_account.id,
-        service_type: rate.service_type,
-        service_name: rate.service_name,
-        charge_weight: rate.charge_weight,
-        detailed_charges: rate.detailed_charges,
-        total_charge: rate.total_charge,
-        delivery_date: rate.delivery_date,
-        transit_time: rate.transit_time,
-      };
-      shipperInfo.standard = shipperData;
-      shipperInfo.expedited = shipperData;
-      shipperInfo.overnight = shipperData;
     }
   }
 
@@ -215,6 +218,7 @@ export function ClubAccessComponent({
     expedited: 2,
     overnight: 1,
   });
+  const [localRatesError, setLocalRatesError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Get location from storage and extract calling code
@@ -256,6 +260,7 @@ export function ClubAccessComponent({
     const generateShippingOptions = async () => {
       if (!rates || rates.length === 0) {
         setShippingOptions([]);
+        setLocalRatesError('No shipping rates available');
         return;
       }
 
@@ -275,6 +280,57 @@ export function ClubAccessComponent({
           isDomestic,
           shippingService
         );
+
+        // Validate that all three service types have valid prices
+        const missingServices: string[] = [];
+        
+        // Check standard service - validate price and that rate was found
+        const isStandardValid = 
+          prices.standard !== undefined &&
+          prices.standard !== null &&
+          !isNaN(prices.standard) &&
+          prices.standard > 0 &&
+          Object.keys(shipperInfo.standard).length > 0;
+        
+        if (!isStandardValid) {
+          missingServices.push('standard');
+        }
+
+        // Check expedited service - validate price and that rate was found
+        const isExpeditedValid = 
+          prices.expedited !== undefined &&
+          prices.expedited !== null &&
+          !isNaN(prices.expedited) &&
+          prices.expedited > 0 &&
+          Object.keys(shipperInfo.expedited).length > 0;
+        
+        if (!isExpeditedValid) {
+          missingServices.push('expedited');
+        }
+
+        // Check overnight service - validate price and that rate was found
+        const isOvernightValid = 
+          prices.overnight !== undefined &&
+          prices.overnight !== null &&
+          !isNaN(prices.overnight) &&
+          prices.overnight > 0 &&
+          Object.keys(shipperInfo.overnight).length > 0;
+        
+        if (!isOvernightValid) {
+          missingServices.push('overnight');
+        }
+
+        // If any service is missing or has invalid price, set error
+        if (missingServices.length > 0) {
+          const serviceNames = missingServices.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ');
+          setLocalRatesError(`Unable to calculate rates for ${serviceNames} service${missingServices.length > 1 ? 's' : ''}. Please try again.`);
+          setShippingOptions([]);
+          return;
+        }
+
+        // Clear any previous error if all prices are valid
+        setLocalRatesError(null);
+
         // Get transit times (use processed values or defaults)
         const transitTimes = {
           standard: shipperInfo.standard.transit_time || 5,
@@ -327,13 +383,14 @@ export function ClubAccessComponent({
       } catch (error) {
         console.error('Error generating shipping options:', error);
         setShippingOptions([]);
+        setLocalRatesError('Failed to process shipping rates. Please try again.');
       }
     };
 
     if (entryMode === 'QuickQuote' && rates) {
       generateShippingOptions();
     }
-  }, [rates, quoteData, entryMode]);
+  }, [rates, quoteData, entryMode, asConfigData]);
 
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
 
@@ -637,7 +694,7 @@ export function ClubAccessComponent({
         </div>
 
         {/* Quote Cards - Half in hero, half out */}
-        {ratesError ? (
+        {(ratesError || localRatesError) ? (
           <>
             <RateFallback
               entryMode="QuickQuote"              

@@ -10,6 +10,7 @@ import { PhoneInput } from './ui/PhoneInput';
 import { usePhoneValidation } from './usePhoneValidation';
 import { WelcomeHeading } from './WelcomeHeading';
 import { storage } from '../services/storage';
+import AnalyticsService from '../services/analytics';
 
 interface AccessStepProps {
   onSubmit: (contact: string) => void;
@@ -23,7 +24,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const emailInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Get location from storage and extract calling code
   const location = storage.getLocation<LocationInfo>();
   const callingCode = location?.country_metadata?.calling_code || '+1';
@@ -52,7 +53,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
     if (isEmailMode) {
       const email = contact.trim();
       if (!email) return;
-      
+
       if (!validateEmail(email)) {
         setError('Please enter a valid email address.');
         return;
@@ -62,7 +63,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
         setIsLoading(true);
         const resp = await apiService.getPartner({ email });
         const partnerSuccess = (resp as any)?.data?.success === true;
-        
+
         if (partnerSuccess) {
           const partner = (resp as any).data.data;
           const otpPayload = {
@@ -74,8 +75,12 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
 
           const otpResp = await apiService.sendOtp(otpPayload);
           const otpSuccess = (otpResp as any)?.data?.success === true;
-          
+
           if (otpSuccess) {
+            // Track OTP start event
+            AnalyticsService.trackOtpStart('email');
+            console.log("OTP Start Fired", { method: 'email' });
+
             if (partner?.items && partner.items.length > 0) {
               try {
                 await apiService.processAndStorePartnerItems(partner);
@@ -98,8 +103,11 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
 
           const otpResp = await apiService.sendOtp(otpPayload);
           const otpSuccess = (otpResp as any)?.data?.success === true;
-          
+
           if (otpSuccess) {
+            // Track OTP start event
+            AnalyticsService.trackOtpStart('email');
+            console.log("OTP Start Fired", { method: 'email' });
             onSubmit(email);
           } else {
             setError((otpResp as any)?.data?.message || 'Failed to send verification code.');
@@ -121,7 +129,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
         setIsLoading(true);
         const resp = await apiService.getPartner({ phone: phone.value });
         const partnerSuccess = (resp as any)?.data?.success === true;
-        
+
         if (partnerSuccess) {
           const partner = (resp as any).data.data;
           const otpPayload = {
@@ -133,8 +141,11 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
 
           const otpResp = await apiService.sendOtp(otpPayload);
           const otpSuccess = (otpResp as any)?.data?.success === true;
-          
+
           if (otpSuccess) {
+            // Track OTP start event
+            AnalyticsService.trackOtpStart('phone');
+            console.log("OTP Start Fired", { method: 'phone' });
             if (partner?.items && partner.items.length > 0) {
               try {
                 await apiService.processAndStorePartnerItems(partner);
@@ -157,8 +168,11 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
 
           const otpResp = await apiService.sendOtp(otpPayload);
           const otpSuccess = (otpResp as any)?.data?.success === true;
-          
+
           if (otpSuccess) {
+            // Track OTP start event
+            AnalyticsService.trackOtpStart('phone');
+            console.log("OTP Start Fired", { method: 'phone' });
             onSubmit(phone.value);
           } else {
             setError((otpResp as any)?.data?.message || 'Failed to send verification code.');
@@ -175,13 +189,12 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
   return (
     <>
       <div className="text-center mb-4 sm:mb-6">
-      <WelcomeHeading
-              style={{ color: '#111111' }}
-              title="Welcome to BagCaddie Club"
-              subheading="Enter your mobile number to verify and continue your BagCaddie Club booking."
-              withAnimation={true}
-            />
-       
+        <WelcomeHeading
+          style={{ color: '#111111' }}
+          title="Welcome to BagCaddie Club"
+          subheading="Enter your mobile number to verify and continue your BagCaddie Club booking."
+          withAnimation={true}
+        />
       </div>
 
       {/* Form Card */}
@@ -190,8 +203,8 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.5 }}
       >
-        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 mb-4 hover:ring-2 hover:ring-[#C8A654] hover:border-[#C8A654] focus-within:ring-2 focus-within:ring-[#C8A654] focus-within:border-[#C8A654] transition-all max-w-[480px] mx-auto" 
-        style={{ maxWidth: '480px' }}
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 mb-4 hover:ring-2 hover:ring-[#C8A654] hover:border-[#C8A654] focus-within:ring-2 focus-within:ring-[#C8A654] focus-within:border-[#C8A654] transition-all max-w-[480px] mx-auto"
+          style={{ maxWidth: '480px' }}
         >
 
           <form onSubmit={handleSubmit}>
@@ -283,7 +296,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
                 Scan or Enter Your 8-Digit BagCaddie Tag Code
               </div>
               <div className="text-xs sm:text-sm text-gray-500">
-               If you already have a BagCaddie tag, scan or enter your code here.
+                If you already have a BagCaddie tag, scan or enter your code here.
               </div>
             </div>
           </div>

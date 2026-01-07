@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AccessStep } from './components/AccessStep';
 import { VerifyStep } from './components/VerifyStep';
 import { RegisterStep } from './components/RegisterStep';
@@ -6,12 +6,14 @@ import { ProgressIndicator } from './components/ProgressIndicator';
 import { Header } from './components/Header';
 import { Toaster } from './components/ui/sonner';
 import { Loader } from './components/Loader';
-import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData, RatesResponse, ShippingRate, AsConfigData } from './services/api';
-import { storage } from './services/storage';
+import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData, RatesResponse, ShippingRate, AsConfigData, PlaceDetailsResponse, QuoteLocation, EventResponse, EventMetaObject } from './services/api';
+import { generateEventQuote, storeEventData } from './services/quoteUtils';
+import { storage, storageService } from './services/storage';
 import { envConfig } from './config/env';
 import { ClubAccessComponent } from './components/ClubAccessComponent';
 import { HelpfulTipsCard } from './components/HelpfulTipsCard';
 import { InternationalAddressModal } from './components/InternationalAddressModal';
+import { EventHero } from './components/EventHero';
 
 
 type Step = 'access' | 'verify' | 'register' | 'booking' | 'quote';
@@ -32,17 +34,25 @@ function App() {
   const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isInternationalModalOpen, setIsInternationalModalOpen] = useState(false);
+  const [eventData, setEventData] = useState<EventMetaObject | null>(null);
+  const [isLoadingEvent, setIsLoadingEvent] = useState(false);
+  const [eventError, setEventError] = useState<string | null>(null);
+  const [eventPartnerLogo, setEventPartnerLogo] = useState<string | null>(null);
+  const [eventPartnerDisplayName, setEventPartnerDisplayName] = useState<string | null>(null);
+  const eventLoadingRef = useRef(false); // Prevent duplicate API calls
+  const loadedEventIdRef = useRef<string | null>(null); // Track which event ID we've loaded
   const [loadingStates, setLoadingStates] = useState({
     products: true,
     location: true,
     asConfig: true,
+    event: false,
   });
 
   // Helper to update loading state
   const setLoadingComplete = useCallback((key: keyof typeof loadingStates) => {
     setLoadingStates((prev) => {
       const updated = { ...prev, [key]: false };
-      // Check if all loading is complete
+      // Check if all loading is complete (excluding event which loads separately)
       if (!updated.products && !updated.location && !updated.asConfig) {
         setIsInitialLoading(false);
       }
@@ -50,15 +60,26 @@ function App() {
     });
   }, []);
 
-  // Add mode=login query parameter if no query string exists
+  // Handle query parameters: mode (login/quote/event) and event (EventId)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    const eventId = urlParams.get('event');
 
-    // Check if there are any query parameters
+    // If no query parameters exist, add mode=login
     if (urlParams.toString() === '') {
-      // No query parameters exist, add mode=login
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('mode', 'login');
+      window.history.replaceState({}, '', newUrl.toString());
+    } else if (!mode && !eventId) {
+      // If no mode but has other params, assume mode=login
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('mode', 'login');
+      window.history.replaceState({}, '', newUrl.toString());
+    } else if (eventId && mode !== 'event') {
+      // If event ID exists but mode is not 'event', set mode=event
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('mode', 'event');
       window.history.replaceState({}, '', newUrl.toString());
     }
   }, []);
@@ -161,19 +182,86 @@ function App() {
           // Check for mode=quote query parameter
           const urlParams = new URLSearchParams(window.location.search);
           const mode = urlParams.get('mode');
+          const pickup = urlParams.get('pickup');
+          const destination = urlParams.get('destination');
+          
+          let quote: QuoteData | null = null;
 
-          // Check for quote in storage
-          const quote = storage.getQuote<QuoteData>();
+          // Check if we have pickup and destination URL params
+          if (mode === 'quote' && pickup && destination) {
+            // Call place-details API for both pickup and destination
+            setIsLoadingRates(true);
+            setRatesError(null);
 
-          // Only proceed if both mode=quote and quote data exist
-          if (mode !== 'quote' || !quote) {
-            return;
-          }
+            try {
+              const [pickupResponse, destinationResponse] = await Promise.all([
+                apiService.getPlaceDetails(pickup),
+                apiService.getPlaceDetails(destination)
+              ]);
 
-          // Validate quote data has required fields
-          if (!quote.from || !quote.to) {
-            console.warn('Invalid quote data in storage');
-            return;
+              // Parse address components for both locations
+              const pickupAddress = apiService.parseAddressComponents(pickupResponse.data.addressComponents);
+              const destinationAddress = apiService.parseAddressComponents(destinationResponse.data.addressComponents);
+
+              // Build QuoteLocation objects
+              const fromLocation: QuoteLocation = {
+                id: '',
+                name: pickupResponse.data.displayName.text || pickup,
+                street1: pickupAddress.street1 || pickupResponse.data.formattedAddress,
+                city: pickupAddress.city,
+                state: pickupAddress.state,
+                postal_code: pickupAddress.postal_code,
+                country: pickupAddress.country || 'US',
+                type: 'location',
+                placeId: '',
+                source: 'url',
+                address: pickupResponse.data.formattedAddress,
+              };
+
+              const toLocation: QuoteLocation = {
+                id: '',
+                name: destinationResponse.data.displayName.text || destination,
+                street1: destinationAddress.street1 || destinationResponse.data.formattedAddress,
+                city: destinationAddress.city,
+                state: destinationAddress.state,
+                postal_code: destinationAddress.postal_code,
+                country: destinationAddress.country || 'US',
+                type: 'location',
+                placeId: '',
+                source: 'url',
+                address: destinationResponse.data.formattedAddress,
+              };
+
+              quote = {
+                from: fromLocation,
+                to: toLocation,
+              };
+
+              // Store quote data
+              storage.setQuotes(quote);
+              setQuoteData(quote);
+            } catch (error) {
+              console.error('Error fetching place details:', error);
+              setRatesError('Failed to load location details. Please try again.');
+              setIsLoadingRates(false);
+              return;
+            }
+          } else {
+            // Fallback to storage quote if no URL params
+            quote = storage.getQuote<QuoteData>();
+            if (mode !== 'quote' || !quote) {
+              return;
+            }
+
+            // Validate quote data has required fields
+            if (!quote.from || !quote.to) {
+              console.warn('Invalid quote data in storage');
+              return;
+            }
+
+            // Always replace _bc_quotes with current _bc_quote
+            storage.setQuotes(quote);
+            setQuoteData(quote);
           }
 
           // Check if either from or to country is non-USA
@@ -187,27 +275,24 @@ function App() {
           if (isFromNonUSA || isToNonUSA) {
             // Show international address modal
             setIsInternationalModalOpen(true);
+            setIsLoadingRates(false);
             return; // Don't proceed with rates calculation
           }
 
-          // Always replace _bc_quotes with current _bc_quote
-          storage.setQuotes(quote);
-
-          setQuoteData(quote);
           setIsLoadingRates(true);
           setRatesError(null);
 
           // Prepare rates API payload
           const ratesPayload = {
             ship_from: {
-              street1: quote.from.street1,
+              street1: quote.from.street1 || quote.from.name,
               city: quote.from.city,
               state: quote.from.state,
               postal_code: quote.from.postal_code,
               country: quote.from.country,
             },
             ship_to: {
-              street1: quote.to.street1,
+              street1: quote.to.street1 || quote.to.name,
               city: quote.to.city,
               state: quote.to.state,
               postal_code: quote.to.postal_code,
@@ -228,7 +313,7 @@ function App() {
 
           // Call rates API
           const ratesResponse = await apiService.calculateRates(ratesPayload);
-          
+
           if (ratesResponse.data.success) {
             setShippingRates(ratesResponse.data.rates);
             setCurrentStep('quote');
@@ -270,6 +355,85 @@ function App() {
     loadEnrichedItems();
   }, []);
 
+  // Load event data when mode=event and event ID is present
+  useEffect(() => {
+    const loadEventData = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      const eventId = urlParams.get('event');
+
+      // Prevent duplicate calls: check if already loading or if we've already loaded this event
+      if (eventLoadingRef.current || (eventId && loadedEventIdRef.current === eventId)) {
+        return;
+      }
+
+      if (mode === 'event' && eventId) {
+        // Set loading flag to prevent duplicate calls
+        eventLoadingRef.current = true;
+        loadedEventIdRef.current = eventId;
+        setIsLoadingEvent(true);
+        setEventError(null);
+        setLoadingStates(prev => ({ ...prev, event: true }));
+        try {
+          const response = await apiService.getEvent({ id: eventId });
+          if (response.data.success) {
+            const successResponse = response.data as { success: true; message: string; events: EventMetaObject };
+            if (successResponse.events) {
+              setEventData(successResponse.events);
+              
+              // Store event data with specified fields
+              storeEventData(successResponse.events, eventId);
+              
+              // Extract customer ID from club field and fetch partner logo
+              const clubField = successResponse.events.fields.find(f => f.key === 'club');
+              if (clubField?.value) {
+                // Extract customer ID number from GID format: "gid://shopify/Customer/8199091683544"
+                const customerIdMatch = clubField.value.match(/\/Customer\/(\d+)$/);
+                if (customerIdMatch && customerIdMatch[1]) {
+                  const customerId = customerIdMatch[1];
+                  try {
+                    const partnerResponse = await apiService.getPartner({ id: customerId });
+                    if (partnerResponse.data.success && partnerResponse.data.data) {
+                      const partnerData = partnerResponse.data.data;
+                      
+                      // Store partner data in CLUB_PARTNER
+                      storageService.setItem('CLUB_PARTNER', partnerData);
+                      
+                      if (partnerData.logo) {
+                        setEventPartnerLogo(partnerData.logo);
+                      }
+                      if (partnerData.displayName) {
+                        setEventPartnerDisplayName(partnerData.displayName);
+                      }
+                    }
+                  } catch (partnerError) {
+                    console.error('Error loading partner logo:', partnerError);
+                    // Don't fail the event load if partner logo fails
+                  }
+                }
+              }
+            } else {
+              setEventError(successResponse.message || 'Failed to load event details');
+            }
+          } else {
+            setEventError(response.data.message || 'Failed to load event details');
+          }
+        } catch (error) {
+          console.error('Error loading event:', error);
+          setEventError('Failed to load event details. Please try again.');
+          // Reset loaded event ID on error so we can retry
+          loadedEventIdRef.current = null;
+        } finally {
+          setIsLoadingEvent(false);
+          setLoadingStates(prev => ({ ...prev, event: false }));
+          eventLoadingRef.current = false;
+        }
+      }
+    };
+
+    loadEventData();
+  }, []); // Empty dependency array - only run once on mount
+
   const handleAccessSubmit = (contact: string) => {
     setContactInfo(contact);
     // Simulate sending OTP
@@ -300,7 +464,12 @@ function App() {
     if (updatedItems) {
       setEnrichedItems(updatedItems);
     }
-
+    
+    // If we have event data, generate quote from customer address to event destination
+    if (eventData) {
+      generateEventQuote(eventData, customerData);
+    }
+    
     // You can store customer data in state or proceed to next step
     setCurrentStep('booking'); // Skip verification if QR code is valid
   };
@@ -326,8 +495,8 @@ function App() {
       // Get quote data (from state or storage)
       const quote = quoteData || storage.getQuote<QuoteData & { shipping_options?: { id: string; title: string } }>();
 
-      // Build Klaviyo payload if we have the required data
-      if (quote && quote.from && quote.to && currentLocation) {
+      // Build Klaviyo payload if we have the required data and we're in production
+      if (envConfig.env === 'production' && quote && quote.from && quote.to && currentLocation) {
         const shippingService = 'Standard';
 
         const klaviyoPayload = {
@@ -361,6 +530,10 @@ function App() {
 
     storage.removeQuote();
     storage.removeAppInitialized();
+    // Only remove items owner if we have event data
+    if (eventData) {
+      storage.removeItemsOwner();
+    }
     const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
     window.location.href = redirectUrl;
   };
@@ -395,22 +568,40 @@ function App() {
     );
   }
 
+  // Get current mode from URL
+  const getCurrentMode = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('mode');
+  };
+  
+  // Only show event banner if we have valid event data
+  const shouldShowEventBanner = eventData !== null && eventData !== undefined && !isLoadingEvent && !eventError;
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <Header destination={quoteData?.to?.name || quoteData?.to?.address} />
-      <Loader isLoading={isInitialLoading || isLoadingRates} />
+      {/* Event Hero Section - Only display if we have valid event data */}
+      {(shouldShowEventBanner && eventData) ? (
+        <EventHero 
+          eventData={eventData} 
+          partnerLogo={eventPartnerLogo} 
+          partnerDisplayName={eventPartnerDisplayName}
+        />
+      ):(
+        <Header destination={quoteData?.to?.name || quoteData?.to?.address} />
+      )}
+      <Loader isLoading={isInitialLoading || isLoadingRates || isLoadingEvent} />
 
       <Toaster position="top-right" />
-      {productsError && (
+      {eventError && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2">
           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
             <p className="text-red-600 text-sm text-center">
-              {productsError}
+              {eventError}
             </p>
           </div>
         </div>
-      )}
+      )}      
 
       {/* Progress Indicator */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
@@ -425,7 +616,7 @@ function App() {
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} />
-              <HelpfulTipsCard />
+              {/* <HelpfulTipsCard /> */}
             </>
           )}
 
@@ -435,6 +626,7 @@ function App() {
               onSubmit={handleVerifySubmit}
               onBack={handleBack}
               redirectToBooking={redirectToBooking}
+              eventData={eventData}
             />
           )}
 

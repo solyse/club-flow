@@ -13,7 +13,8 @@ export const STORAGE_KEYS = {
   QUOTES: "_bc_quotes",
   QUOTE: "_bc_quote",
   CONTACT_INFO: "_bc_contact_info",
-  APP_INITIALIZED: "_bc_app_initialized"
+  APP_INITIALIZED: "_bc_app_initialized",
+  EVENT: "_bc_event"
 } as const;
 
 export type StorageKey = keyof typeof STORAGE_KEYS;

@@ -149,6 +149,12 @@ export interface PartnerData {
   // addresses and defaultAddress can vary in shape; keep them flexible
   addresses?: any;
   defaultAddress?: any;
+  logo?: string;
+  banner?: string;
+  description?: string;
+  club_id?: string | null;
+  vip?: boolean;
+  qr_code?: string;
 }
 
 export interface PartnerSuccessResponse {
@@ -346,6 +352,37 @@ export interface QuoteData {
   to: QuoteLocation;
 }
 
+// Place Details API types
+export interface AddressComponent {
+  longText: string;
+  shortText: string;
+  types: string[];
+  languageCode: string;
+}
+
+export interface PlaceDetailsData {
+  types: string[];
+  formattedAddress: string;
+  addressComponents: AddressComponent[];
+  displayName: {
+    text: string;
+    languageCode: string;
+  };
+}
+
+export interface PlaceDetailsResponse {
+  x: number;
+  data: PlaceDetailsData;
+  epsid: string;
+  duration: number;
+  memory: string;
+  core_version?: string;
+}
+
+export interface PlaceDetailsRequest {
+  location: string;
+}
+
 // Rates API types
 export interface RatesRequest {
   ship_from: {
@@ -363,6 +400,8 @@ export interface RatesRequest {
     country: string;
   };
   parcels: {
+    item_id?: string;
+    item_name?: string;
     quantity: number;
     dimensions: {
       depth: string;
@@ -435,6 +474,51 @@ export interface RatesErrorResponse {
 }
 
 export type RatesResponse = RatesSuccessResponse | RatesErrorResponse;
+
+// Event types
+export interface EventField {
+  key: string;
+  type: string;
+  value: string | null;
+  jsonValue: string | string[] | null;
+  reference: any | null;
+}
+
+export interface EventMetaObject {
+  id: string;
+  type: string;
+  handle: string;
+  fields: EventField[];
+}
+
+export interface EventSuccessResponse {
+  x: number;
+  data: {
+    success: true;
+    message: string;
+    events: EventMetaObject;
+  };
+  duration: number;
+  memory: string;
+  epsid: string;
+}
+
+export interface EventErrorResponse {
+  x: number;
+  data: {
+    success: false;
+    message: string;
+  };
+  duration: number;
+  memory: string;
+  epsid: string;
+}
+
+export type EventResponse = EventSuccessResponse | EventErrorResponse;
+
+export interface EventRequest {
+  id: string;
+}
 
 // API service class
 export class ApiService {
@@ -659,9 +743,9 @@ export class ApiService {
   }
 
   /**
-   * Get partner details by email or phone
+   * Get partner details by email, phone, or id
    */
-  public async getPartner(payload: { email?: string; phone?: string }): Promise<PartnerResponse> {
+  public async getPartner(payload: { email?: string; phone?: string; id?: string }): Promise<PartnerResponse> {
     try {
       const response = await fetch(`${this.baseURL}/partner`, {
         method: 'POST',
@@ -1215,6 +1299,95 @@ export class ApiService {
   }
 
   /**
+   * Get place details from location string
+   * @param location - Location string (e.g., "carlton woods")
+   * @returns Promise with place details response
+   */
+  public async getPlaceDetails(location: string): Promise<PlaceDetailsResponse> {
+    try {
+      const payload: PlaceDetailsRequest = { location };
+      
+      const response = await fetch(`${this.baseURL}/place-details`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: PlaceDetailsResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Place Details API Error:', error);
+      const errorResponse: PlaceDetailsResponse = {
+        x: 400,
+        data: {
+          types: [],
+          formattedAddress: '',
+          addressComponents: [],
+          displayName: {
+            text: '',
+            languageCode: 'en'
+          }
+        },
+        epsid: '',
+        duration: 0,
+        memory: '0',
+      };
+      return errorResponse;
+    }
+  }
+
+  /**
+   * Parse address components to extract address fields
+   * @param addressComponents - Array of address components
+   * @returns Parsed address object
+   */
+  public parseAddressComponents(addressComponents: AddressComponent[]): {
+    street1: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+  } {
+    const address: {
+      street1: string;
+      city: string;
+      state: string;
+      postal_code: string;
+      country: string;
+    } = {
+      street1: '',
+      city: '',
+      state: '',
+      postal_code: '',
+      country: '',
+    };
+
+    addressComponents.forEach((component) => {
+      if (component.types.includes('street_number')) {
+        address.street1 = component.longText + (address.street1 ? ' ' + address.street1 : '');
+      } else if (component.types.includes('route')) {
+        address.street1 = (address.street1 ? address.street1 + ' ' : '') + component.longText;
+      } else if (component.types.includes('locality')) {
+        address.city = component.longText;
+      } else if (component.types.includes('administrative_area_level_1')) {
+        address.state = component.shortText;
+      } else if (component.types.includes('postal_code')) {
+        address.postal_code = component.longText;
+      } else if (component.types.includes('country')) {
+        address.country = component.shortText;
+      }
+    });
+
+    return address;
+  }
+
+  /**
    * Create Klaviyo event
    * @param payload - Klaviyo event payload
    * @returns Promise with response
@@ -1253,6 +1426,43 @@ export class ApiService {
       console.error('Klaviyo API Error:', error);
       // Don't throw error - allow redirect to continue even if Klaviyo fails
       return null;
+    }
+  }
+
+  /**
+   * Get event details by event ID
+   * @param payload - Event request payload with event ID
+   * @returns Promise with event response
+   */
+  public async getEvent(payload: EventRequest): Promise<EventResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/event`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: EventResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Event API Error:', error);
+      const errorResponse: EventErrorResponse = {
+        x: 400,
+        data: {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to fetch event details',
+        },
+        duration: 0,
+        memory: '0',
+        epsid: '',
+      };
+      return errorResponse;
     }
   }
 }

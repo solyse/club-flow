@@ -2,17 +2,20 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
 import { toast } from 'sonner';
-import { apiService } from '../services/api';
+import { apiService, EventMetaObject } from '../services/api';
 import { storage } from '../services/storage';
+import AnalyticsService from '../services/analytics';
+import { generateEventQuote } from '../services/quoteUtils';
 
 interface VerifyStepProps {
   contactInfo: string;
   onSubmit: (code: string, hasPartner: boolean) => void;
   onBack: () => void;
   redirectToBooking: () => void | Promise<void>;
+  eventData?: EventMetaObject | null;
 }
 
-export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }: VerifyStepProps) {
+export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, eventData }: VerifyStepProps) {
   const [code, setCode] = useState('');
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
@@ -47,7 +50,8 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }:
       const resp = await apiService.verifyAuth(payload);
       const ok = (resp as any)?.data?.success === true;
       if (ok) {
-        toast.success('Code verified successfully');        
+        toast.success('Code verified successfully');
+
         // Check if partner exists
         let hasPartner = false;
         let partnerData = null;
@@ -57,12 +61,15 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }:
             : { phone: contactInfo };
           const partnerResp = await apiService.getPartner(partnerPayload);
           hasPartner = (partnerResp as any)?.data?.success === true;
-          
+          // Track OTP success event
+          AnalyticsService.trackOtpSuccess(isEmail ? 'email' : 'phone', true);
+          console.log("OTP Success Fired", { method: isEmail ? 'email' : 'phone', isNewUser: true });
           // If partner exists, store itemsOwner and enrich items
           if (hasPartner) {
             partnerData = (partnerResp as any).data.data;
             if (partnerData) {
               storage.setItemsOwner(partnerData);
+              
               // If partner has items, enrich and store them
               if (partnerData.items && partnerData.items.length > 0) {
                 try {
@@ -72,18 +79,22 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }:
                   // Continue even if enrichment fails
                 }
               }
+
+              // If we have event data, generate quote from partner address to event destination
+              if (eventData) {
+                generateEventQuote(eventData, partnerData);
+              }
             }
           }
-           //store the partner data in localStorage
-           storage.setContactInfo(partnerPayload);
-           redirectToBooking();
+          
+          storage.setContactInfo(partnerPayload);          
+          redirectToBooking();
         } catch (partnerErr) {
           // If partner check fails, assume no partner
           console.error('Error checking partner:', partnerErr);
           hasPartner = false;
         }
-        
-        // onSubmit(code, hasPartner);
+
       } else {
         setError((resp as any)?.data?.message || 'Invalid verification code');
         toast.error((resp as any)?.data?.message || 'Invalid verification code');
@@ -111,7 +122,7 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }:
       const resp = await apiService.getPartner(partnerPayload);
       const partnerSuccess = (resp as any)?.data?.success === true;
       let partner = null;
-      
+
       if (partnerSuccess) {
         partner = (resp as any).data.data;
       }
@@ -127,8 +138,11 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking }:
 
       const otpResp = await apiService.sendOtp(otpPayload);
       const otpSuccess = (otpResp as any)?.data?.success === true;
-      
+
       if (otpSuccess) {
+        // Track OTP start event
+        AnalyticsService.trackOtpStart(isEmail ? 'email' : 'phone');
+        console.log("OTP Start Fired", { method: isEmail ? 'email' : 'phone' });
         setResendTimer(30);
         setCanResend(false);
         setCode('');
