@@ -375,7 +375,7 @@ function App() {
         setEventError(null);
         setLoadingStates(prev => ({ ...prev, event: true }));
         try {
-          const response = await apiService.getEvent({ id: eventId });
+          const response = await apiService.getEvent({ event_id: eventId });
           if (response.data.success) {
             const successResponse = response.data as { success: true; message: string; events: EventMetaObject };
             if (successResponse.events) {
@@ -534,7 +534,18 @@ function App() {
     if (eventData) {
       storage.removeItemsOwner();
     }
-    const redirectUrl = `${envConfig.websiteUrl}/club/?${envConfig.bagCaddieCode}`;
+    
+    // Determine which code to use for redirect
+    let redirectCode = envConfig.bagCaddieCode;
+    if (eventData) {
+      // If we have event data, try to get qr_code from CLUB_PARTNER
+      const clubPartner = storageService.getItem<{ qr_code?: string }>('CLUB_PARTNER');
+      if (clubPartner?.qr_code) {
+        redirectCode = clubPartner.qr_code;
+      }
+    }
+    
+    const redirectUrl = `${envConfig.websiteUrl}/club/?${redirectCode}`;
     window.location.href = redirectUrl;
   };
   // Redirect to booking page when step is 'booking'

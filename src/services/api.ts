@@ -517,7 +517,7 @@ export interface EventErrorResponse {
 export type EventResponse = EventSuccessResponse | EventErrorResponse;
 
 export interface EventRequest {
-  id: string;
+  event_id: string;
 }
 
 // API service class
