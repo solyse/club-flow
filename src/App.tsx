@@ -184,7 +184,7 @@ function App() {
           const mode = urlParams.get('mode');
           const pickup = urlParams.get('pickup');
           const destination = urlParams.get('destination');
-          
+
           let quote: QuoteData | null = null;
 
           // Check if we have pickup and destination URL params
@@ -380,10 +380,10 @@ function App() {
             const successResponse = response.data as { success: true; message: string; events: EventMetaObject };
             if (successResponse.events) {
               setEventData(successResponse.events);
-              
+
               // Store event data with specified fields
               storeEventData(successResponse.events, eventId);
-              
+
               // Extract customer ID from club field and fetch partner logo
               const clubField = successResponse.events.fields.find(f => f.key === 'club');
               if (clubField?.value) {
@@ -395,10 +395,10 @@ function App() {
                     const partnerResponse = await apiService.getPartner({ id: customerId });
                     if (partnerResponse.data.success && partnerResponse.data.data) {
                       const partnerData = partnerResponse.data.data;
-                      
+
                       // Store partner data in CLUB_PARTNER
                       storageService.setItem('CLUB_PARTNER', partnerData);
-                      
+
                       if (partnerData.logo) {
                         setEventPartnerLogo(partnerData.logo);
                       }
@@ -464,12 +464,12 @@ function App() {
     if (updatedItems) {
       setEnrichedItems(updatedItems);
     }
-    
+
     // If we have event data, generate quote from customer address to event destination
     if (eventData) {
       generateEventQuote(eventData, customerData);
     }
-    
+
     // You can store customer data in state or proceed to next step
     setCurrentStep('booking'); // Skip verification if QR code is valid
   };
@@ -534,18 +534,22 @@ function App() {
     if (eventData) {
       storage.removeItemsOwner();
     }
-    
+
     // Determine which code to use for redirect
     let redirectCode = envConfig.bagCaddieCode;
+    let redirectUrl = `${envConfig.websiteUrl}/club/?${redirectCode}`;
+    // Get quote data (from state or storage)
+    const quote = quoteData || storage.getQuote<QuoteData & { shipping_options?: { id: string; title: string } }>();
     if (eventData) {
-      // If we have event data, try to get qr_code from CLUB_PARTNER
-      const clubPartner = storageService.getItem<{ qr_code?: string }>('CLUB_PARTNER');
-      if (clubPartner?.qr_code) {
-        redirectCode = clubPartner.qr_code;
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      const eventId = urlParams.get('event');
+      if (mode === 'event' && eventId) {
+        redirectUrl = `${envConfig.websiteUrl}/pages/scanner/?event=${eventId}`;
       }
+    } else if (quote && quote.from && quote.to) {
+      redirectUrl = `${envConfig.websiteUrl}/pages/scanner/`;
     }
-    
-    const redirectUrl = `${envConfig.websiteUrl}/club/?${redirectCode}`;
     window.location.href = redirectUrl;
   };
   // Redirect to booking page when step is 'booking'
@@ -584,7 +588,7 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('mode');
   };
-  
+
   // Only show event banner if we have valid event data
   const shouldShowEventBanner = eventData !== null && eventData !== undefined && !isLoadingEvent && !eventError;
 
@@ -593,12 +597,12 @@ function App() {
       {/* Header */}
       {/* Event Hero Section - Only display if we have valid event data */}
       {(shouldShowEventBanner && eventData) ? (
-        <EventHero 
-          eventData={eventData} 
-          partnerLogo={eventPartnerLogo} 
+        <EventHero
+          eventData={eventData}
+          partnerLogo={eventPartnerLogo}
           partnerDisplayName={eventPartnerDisplayName}
         />
-      ):(
+      ) : (
         <Header destination={quoteData?.to?.name || quoteData?.to?.address} />
       )}
       <Loader isLoading={isInitialLoading || isLoadingRates || isLoadingEvent} />
@@ -612,7 +616,7 @@ function App() {
             </p>
           </div>
         </div>
-      )}      
+      )}
 
       {/* Progress Indicator */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
