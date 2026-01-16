@@ -18,7 +18,6 @@ import { QRScanModal } from './QRScanModal';
 import { RegisterStep } from './RegisterStep';
 import { Product } from '../services/api';
 import { RateFallback } from './RateFallback';
-import { HelpfulTipsCard } from './HelpfulTipsCard';
 interface ClubAccessComponentProps {
   ratesError?: string;
   entryMode: 'QuickQuote' | 'StartJourney';
@@ -1018,7 +1017,6 @@ export function ClubAccessComponent({
                   </div>
                 </div>
               </button>
-              <HelpfulTipsCard />
               {showQRScan && (
                 <QRScanModal
                   onClose={() => setShowQRScan(false)}
