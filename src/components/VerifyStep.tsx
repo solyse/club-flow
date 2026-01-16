@@ -22,6 +22,7 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, e
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
+  const isEmail = contactInfo.includes('@');
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -164,18 +165,16 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, e
 
   return (
     <div>
-      <div className="text-center mb-6 sm:mb-10 px-2">
-        <h1 className="mb-4 sm:mb-6">Verify Your Code</h1>
+      <div className="text-left mb-6">
         <p className="text-gray-900">
-          Enter the 6-digit code we sent to
+          Enter the 6-digit code sent to your {isEmail ? 'email' : 'phone'}
         </p>
-        <p className="font-medium text-gray-900 mt-1 break-words">{contactInfo}</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white">
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-start mb-6">
               <InputOTP
                 maxLength={6}
                 value={code}
@@ -183,35 +182,35 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, e
                 autoFocus
               >
                 <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
+                  <InputOTPSlot index={0} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={1} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={2} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={3} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={4} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={5} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
                 </InputOTPGroup>
               </InputOTP>
             </div>
 
             {error && (
-              <div className="text-center mb-4">
+              <div className="text-left mb-4">
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
-            <div className="text-center mb-6">
+            <div className="text-left mb-6">
               {canResend ? (
                 <button
                   type="button"
                   onClick={handleResend}
                   disabled={isResending}
-                  className={`text-sm ${isResending ? 'text-gray-400 cursor-not-allowed' : 'text-[#C8A654] hover:text-[#B89544]'}`}
+                  className={`text-sm bg-[rgba(179,128,43,0.08)] rounded-[6px] h-[10px] px-2 ${isResending ? 'text-gray-400 cursor-not-allowed bg-transparent' : 'text-[#C8A654] hover:text-[#B89544]'}`}
                 >
                   {isResending ? (
                     'Sending...'
                   ) : (
                     <>
-                      Didn't get it? <span className="underline">Resend code</span>
+                      Resend code
                     </>
                   )}
                 </button>
@@ -223,18 +222,18 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, e
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex justify-end align-stretch gap-3">
             <Button
               type="button"
-              variant="outline"
               onClick={onBack}
-              className="flex-1"
+              className="flex-1 max-w-[100px] bg-gray-200 text-gray-900"
+              disabled={isLoading}
             >
-              Back
+              Cancel
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-[#C8A654] hover:bg-[#B89544] text-white"
+              className="flex-1 bg-[#C8A654] hover:bg-[#B89544] text-white max-w-[100px]"
               disabled={code.length !== 6 || isLoading}
             >
               {isLoading ? 'Verifying…' : 'Continue'}

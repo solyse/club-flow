@@ -150,8 +150,10 @@
   .bc-otp-inputs input,
   .bc-otp-inputs input:hover {
     border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
-    border-radius: 8px !important;
+    border-radius: 6px !important;
     border-style: solid !important;
+    border-width: 1px !important;
+    padding:0 8px !important;
   }
 
   .bc-otp-inputs input:focus {
@@ -308,4 +310,73 @@ html {
 
 [data-sonner-toast][data-type="success"] [data-icon] {
   color: #16a34a !important;
+}
+
+/* Active tab border styling */
+.bc-active-tab {
+  border: 1px solid #B3802B !important;
+  background-color: #FAF8F3 !important;
+  color: #B3802B !important;
+}
+
+.bc-active-tab svg {
+  color: #B3802B !important;
+}
+
+/* Tab border radius overrides */
+/* When Mobile is active */
+.bc-tab-mobile-active .bc-tab-mobile {
+  border-top-left-radius: 6px !important;
+  border-bottom-left-radius: 6px !important;
+  border-top-right-radius: 6px !important;
+  border-bottom-right-radius: 6px !important;
+}
+
+.bc-tab-mobile-active .bc-tab-email {
+  border-radius: 0 !important;
+}
+
+.bc-tab-mobile-active .bc-tab-club {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-top-right-radius: 6px !important;
+  border-bottom-right-radius: 6px !important;
+}
+
+/* When Email is active */
+.bc-tab-email-active .bc-tab-mobile {
+  border-top-left-radius: 6px !important;
+  border-bottom-left-radius: 6px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.bc-tab-email-active .bc-tab-email {
+  border-radius: 6px !important;
+}
+
+.bc-tab-email-active .bc-tab-club {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-top-right-radius: 6px !important;
+  border-bottom-right-radius: 6px !important;
+}
+
+/* When Club code is active */
+.bc-tab-club-active .bc-tab-mobile {
+  border-top-left-radius: 6px !important;
+  border-bottom-left-radius: 6px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.bc-tab-club-active .bc-tab-email {
+  border-radius: 0 !important;
+}
+
+.bc-tab-club-active .bc-tab-club {
+  border-top-left-radius: 6px !important;
+  border-bottom-left-radius: 6px !important;
+  border-top-right-radius: 6px !important;
+  border-bottom-right-radius: 6px !important;
 }

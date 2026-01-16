@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AccessStep } from './components/AccessStep';
-import { VerifyStep } from './components/VerifyStep';
+import { VerifyModal } from './components/VerifyModal';
 import { RegisterStep } from './components/RegisterStep';
 import { ProgressIndicator } from './components/ProgressIndicator';
 import { Header } from './components/Header';
@@ -11,7 +11,6 @@ import { generateEventQuote, storeEventData } from './services/quoteUtils';
 import { storage, storageService } from './services/storage';
 import { envConfig } from './config/env';
 import { ClubAccessComponent } from './components/ClubAccessComponent';
-import { HelpfulTipsCard } from './components/HelpfulTipsCard';
 import { InternationalAddressModal } from './components/InternationalAddressModal';
 import { EventHero } from './components/EventHero';
 
@@ -34,6 +33,7 @@ function App() {
   const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isInternationalModalOpen, setIsInternationalModalOpen] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [eventData, setEventData] = useState<EventMetaObject | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [eventError, setEventError] = useState<string | null>(null);
@@ -436,8 +436,8 @@ function App() {
 
   const handleAccessSubmit = (contact: string) => {
     setContactInfo(contact);
-    // Simulate sending OTP
-    setCurrentStep('verify');
+    // Open verification modal instead of changing step
+    setIsVerifyModalOpen(true);
   };
 
   const handleVerifySubmit = (code: string, hasPartner: boolean) => {
@@ -475,16 +475,17 @@ function App() {
   };
 
   const handleBack = () => {
-    if (currentStep === 'verify') {
+    if (currentStep === 'register') {
+      // If on register step, go back to access
       setCurrentStep('access');
-    } else if (currentStep === 'register') {
-      setCurrentStep('verify');
     }
+    // For verify modal, it's handled by the modal's onClose
   };
 
 
   // Common method to redirect to booking page
   const redirectToBooking = async () => {
+    setIsVerifyModalOpen(false);
     setCurrentStep('booking');
 
     // Create Klaviyo event before redirecting
@@ -627,22 +628,12 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
-        <div className=" mx-auto" style={{ maxWidth: '500px' }}>
+        <div className="mx-auto" style={{ maxWidth: '500px' }}>
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} />
               {/* <HelpfulTipsCard /> */}
             </>
-          )}
-
-          {currentStep === 'verify' && (
-            <VerifyStep
-              contactInfo={contactInfo}
-              onSubmit={handleVerifySubmit}
-              onBack={handleBack}
-              redirectToBooking={redirectToBooking}
-              eventData={eventData}
-            />
           )}
 
           {currentStep === 'register' && (
@@ -678,6 +669,18 @@ function App() {
               storage.removeQuote();
               setQuoteData(null);
             }}
+          />
+
+          {/* Verify Modal */}
+          <VerifyModal
+            isOpen={isVerifyModalOpen}
+            onClose={() => {
+              setIsVerifyModalOpen(false);
+            }}
+            contactInfo={contactInfo}
+            onSubmit={handleVerifySubmit}
+            redirectToBooking={redirectToBooking}
+            eventData={eventData}
           />
         </div>
       </main>

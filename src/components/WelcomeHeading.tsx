@@ -10,7 +10,7 @@ interface WelcomeHeadingProps {
 }
 
 export function WelcomeHeading({
-    title = 'Welcome to BagCaddie Club',
+    title = 'Welcome to BagCaddie',
     className = 'mb-4 sm:mb-6',
     style,
     withAnimation = false,

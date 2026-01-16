@@ -11,14 +11,14 @@ import { toast } from 'sonner';
 import { getHeroImage } from '../data/heroImages';
 import { ShippingRate, QuoteData, CustomerData, apiService, LocationInfo, AsConfigData } from '../services/api';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
-import { envConfig } from '../config/env';
 import { storage } from '../services/storage';
 import { WelcomeHeading } from './WelcomeHeading';
 import { QRScanModal } from './QRScanModal';
 import { RegisterStep } from './RegisterStep';
 import { Product } from '../services/api';
 import { RateFallback } from './RateFallback';
-import { HelpfulTipsCard } from './HelpfulTipsCard';
+import { AccessTabs, type TabType } from './AccessTabs';
+import { AccessForm } from './AccessForm';
 interface ClubAccessComponentProps {
   ratesError?: string;
   entryMode: 'QuickQuote' | 'StartJourney';
@@ -191,12 +191,16 @@ export function ClubAccessComponent({
   redirectToBooking
 }: ClubAccessComponentProps) {
   const [contact, setContact] = useState('');
-  const [isEmailMode, setIsEmailMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<'mobile' | 'email' | 'club_code'>('mobile');
+  const [clubCode, setClubCode] = useState<string[]>(Array(8).fill(''));
   const [error, setError] = useState<string>('');
   const [showQRScan, setShowQRScan] = useState(false);
   const [inputMode, setInputMode] = useState<'mobile' | 'email'>('mobile');
   const [value, setValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingClubCode, setIsLoadingClubCode] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const clubCodeInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [showOtpVerification, setShowOtpVerification] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -394,16 +398,100 @@ export function ClubAccessComponent({
 
   const validateEmail = (value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
 
-  // Compute form validity based on current mode
-  const isFormValid = isEmailMode
-    ? contact.trim() !== '' && validateEmail(contact.trim())
-    : phone.isValid;
+  // Compute form validity based on active tab
+  const isFormValid =
+    activeTab === 'mobile' ? phone.isValid :
+    activeTab === 'email' ? (contact.trim() !== '' && validateEmail(contact.trim())) :
+    activeTab === 'club_code' ? clubCode.every(char => char !== '') :
+    false;
+
+
+  // Club code input handlers
+  const handleClubCodeChange = (index: number, value: string) => {
+    // Allow alphanumeric characters (letters and numbers)
+    if (value && !/^[A-Za-z0-9]$/.test(value)) return;
+
+    const newCode = [...clubCode];
+    newCode[index] = value.toUpperCase(); // Convert to uppercase for consistency
+    setClubCode(newCode);
+    setError('');
+
+    // Auto-advance to next input
+    if (value && index < 7) {
+      clubCodeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleClubCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle backspace
+    if (e.key === 'Backspace' && !clubCode[index] && index > 0) {
+      clubCodeInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleClubCodePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').slice(0, 8);
+    // Allow alphanumeric characters and convert to uppercase
+    const chars = pastedData.split('').filter(char => /^[A-Za-z0-9]$/.test(char));
+
+    const newCode = [...clubCode];
+    chars.forEach((char, index) => {
+      if (index < 8) {
+        newCode[index] = char.toUpperCase();
+      }
+    });
+    setClubCode(newCode);
+    setError('');
+
+    // Focus the next empty input or the last one
+    const nextEmptyIndex = newCode.findIndex(c => !c);
+    if (nextEmptyIndex !== -1) {
+      clubCodeInputRefs.current[nextEmptyIndex]?.focus();
+    } else {
+      clubCodeInputRefs.current[7]?.focus();
+    }
+  };
+
+  const isClubCodeComplete = clubCode.every(char => char !== '');
+
+  // Handle club code submission
+  const handleClubCodeSubmit = async () => {
+    if (!isClubCodeComplete) return;
+    setIsLoadingClubCode(true);
+    setError('');
+
+    try {
+      const qrCode = clubCode.join('');
+      const response = await apiService.validateQRCode(qrCode);
+
+      if (apiService.isSuccessResponse(response)) {
+        // Success - call the onSuccess callback with customer data
+        onQRSuccess?.(response.data.data);
+      } else {
+        // Error - show error message
+        setError(apiService.getErrorMessage(response));
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error('QR Code validation error:', err);
+    } finally {
+      setIsLoadingClubCode(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (activeTab === 'club_code') {
+      // Handle club code submission
+      await handleClubCodeSubmit();
+      return;
+    }
+
     const raw = contact.trim();
-    if (isEmailMode) {
+    if (activeTab === 'email') {
       if (!raw) return;
       if (!validateEmail(raw)) {
         setError('Please enter a valid email address.');
@@ -415,13 +503,8 @@ export function ClubAccessComponent({
     setOtpError('');
 
     try {
-      // For mobile, if no country code is provided, add +1 (US) as default
-      // let phoneValue = raw.trim();
-      // if (!isEmailMode && !phoneValue.startsWith('+')) {
-      //   phoneValue = `+1${phoneValue}`;
-      // }
-      const normalizedPhone = !isEmailMode ? phone.value : '';
-      const payload = isEmailMode
+      const normalizedPhone = activeTab === 'mobile' ? phone.value : '';
+      const payload = activeTab === 'email'
         ? { email: raw }
         : { phone: normalizedPhone };
 
@@ -432,11 +515,11 @@ export function ClubAccessComponent({
 
       // Send OTP
       const otpPayload = {
-        type: isEmailMode ? 'email' as const : 'phone' as const,
+        type: activeTab === 'email' ? 'email' as const : 'phone' as const,
         first_name: partner?.firstName || 'User',
         last_name: partner?.lastName || '',
-        email: isEmailMode ? raw : undefined,
-        phone: !isEmailMode ? normalizedPhone : undefined,
+        email: activeTab === 'email' ? raw : undefined,
+        phone: activeTab === 'mobile' ? normalizedPhone : undefined,
       };
 
       const otpResp = await apiService.sendOtp(otpPayload);
@@ -457,7 +540,7 @@ export function ClubAccessComponent({
         }
 
         toast.success('Verification code sent!');
-        setContactInfo(isEmailMode ? raw : normalizedPhone);
+        setContactInfo(activeTab === 'email' ? raw : normalizedPhone);
         setShowOtpVerification(true);
         setResendTimer(30);
         setCanResend(false);
@@ -602,7 +685,7 @@ export function ClubAccessComponent({
       helperText: "We'll save your quote and take you directly to your booking, where you'll confirm your preferred service.",
     },
     StartJourney: {
-      header: 'Welcome to BagCaddie Club',
+      header: 'Welcome to BagCaddie',
       subheading: 'Enter your mobile number to verify and continue.',
       ctaText: 'Continue Your Journey',
       helperText: "You'll be able to plan and book your next trip with ease.",
@@ -796,7 +879,7 @@ export function ClubAccessComponent({
         <div className="max-w-6xl mx-auto px-4 pt-0 pb-6 text-center">
           <WelcomeHeading
             style={{ color: '#111111' }}
-            title="Welcome to BagCaddie Club"
+            title="Welcome to BagCaddie"
             subheading="A concierge-level experience for smart travelers."
             withAnimation={true}
           />
@@ -921,104 +1004,38 @@ export function ClubAccessComponent({
                   </form>
                 ) : (
                   /* Contact Input Form */
-                  <form onSubmit={handleSubmit} className="space-y-5 bc-auth-form">
+                  <div className="space-y-5 bc-auth-form">
                     <p className="text-gray-900 mb-4 px-2" style={{ fontSize: '13px' }}>
                       New or returning member — verify once and travel with ease.
                     </p>
-                    <div className="mb-4">
-                      <Label htmlFor="contact" className="mb-2 flex items-center gap-2">
-                        {isEmailMode ? <Mail className="w-4 h-4 text-gray-500" /> : <Phone className="w-4 h-4 text-gray-500" />}
-                        {isEmailMode ? 'Email address' : 'Mobile number'}
-                      </Label>
-
-                      {isEmailMode ? (
-                        <Input
-                          autoFocus={true}
-                          id="contact"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={contact}
-                          onChange={(e) => setContact(e.target.value)}
-                          className="w-full h-11"
-                        />
-                      ) : (
-                        <PhoneInput
-                          value={phone.value}
-                          onChange={phone.setValue}
-                          isValid={phone.isValid}
-                          countryCode={phone.countryCode}
-                          nationalNumber={phone.nationalNumber}
-                        />
-
-                      )}
-
-                      <p className="text-sm text-gray-500 mt-2">
-                        {isEmailMode
-                          ? "We'll send a 6-digit code to your email."
-                          : "We'll send a 6-digit code to verify your identity."}
-                      </p>
-
-                      {error && (
-                        <div className="mt-2 rounded-md border border-red-200 bg-red-50 p-2">
-                          <p className="text-xs text-red-700">{error}</p>
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEmailMode(!isEmailMode);
-                          if (isEmailMode) {
-                            // Switching to phone mode - clear email
-                            setContact('');
-                          }
-                        }}
-                        className="text-sm text-[#C8A654] mt-2 hover:underline"
-                      >
-                        {isEmailMode ? 'Use mobile number instead →' : 'Use email instead →'}
-                      </button>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-[#C8A654] hover:bg-[#B89544] text-white h-11 rounded-lg"
-                      disabled={isLoading || !isFormValid}
-                    >
-                      {isLoading ? 'Checking…' : 'Continue'}
-                    </Button>
-
-                    <p className="text-center text-sm text-gray-500 mt-3">
-                      Next: Verify your 6-digit code.
-                    </p>
-                  </form>
+                    
+                    <AccessForm
+                      activeTab={activeTab}
+                      onTabChange={(tab) => {
+                        setActiveTab(tab);
+                        setError('');
+                      }}
+                      phone={phone}
+                      contact={contact}
+                      onContactChange={setContact}
+                      clubCode={clubCode}
+                      onClubCodeChange={handleClubCodeChange}
+                      onClubCodeKeyDown={handleClubCodeKeyDown}
+                      onClubCodePaste={handleClubCodePaste}
+                      isFormValid={isFormValid}
+                      isLoading={isLoading}
+                      isLoadingClubCode={isLoadingClubCode}
+                      error={error}
+                      onSubmit={handleSubmit}
+                      onQRScanClick={() => setShowQRScan(true)}
+                      emailAutoFocus={true}
+                      clubCodeInputRefs={clubCodeInputRefs}
+                    />
+                  </div>
                 )}
               </div>
-              {/* Divider */}
-              <div className="flex items-center gap-4 pt-4 sm:pt-6 pb-3 sm:pb-4 max-w-[420px] mx-auto">
-                <div className="flex-1 h-px bg-gray-300" />
-                <span className="text-sm text-gray-500">or</span>
-                <div className="flex-1 h-px bg-gray-300" />
-              </div>
-              {/* QR Scan Option */}
-              <button
-                onClick={() => setShowQRScan(true)}
-                className="w-full bg-white rounded-xl p-4 sm:p-6 border-2 border border-gray-200 hover:border-[#C8A654] transition-colors group  mx-auto block"
-              >
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-full bg-gray-100 group-hover:bg-[#C8A654]/10 flex items-center justify-center transition-colors">
-                    <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 group-hover:text-[#C8A654] transition-colors" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900 mb-1 text-sm sm:text-base">
-                      Scan or Enter Your 8-Digit BagCaddie Tag Code
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-500">
-                      If you already have a BagCaddie tag, scan or enter your code here.
-                    </div>
-                  </div>
-                </div>
-              </button>
-              <HelpfulTipsCard />
+
+              {/* QR Scan Modal */}
               {showQRScan && (
                 <QRScanModal
                   onClose={() => setShowQRScan(false)}

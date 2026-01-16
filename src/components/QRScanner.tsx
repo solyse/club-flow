@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 
 interface QRScannerProps {
   onScanSuccess: (code: string) => void;
@@ -99,53 +99,14 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
     }
   };
 
-  // Load ZXing library and start scanning
-  useEffect(() => {
-    let script: HTMLScriptElement | null = null;
-    let mounted = true;
-
-    const loadLibrary = () => {
-      // Check if already loaded
-      if (window.ZXing) {
-        setIsLoading(false);
-        startScanning();
-        return;
-      }
-
-      script = document.createElement('script');
-      script.src = 'https://unpkg.com/@zxing/library@latest';
-      script.async = true;
-      script.onload = () => {
-        if (mounted) {
-          setIsLoading(false);
-          startScanning();
-        }
-      };
-      script.onerror = () => {
-        if (mounted) {
-          setError('Failed to load QR scanner library');
-          setIsLoading(false);
-          onError?.('Failed to load QR scanner library');
-        }
-      };
-      document.body.appendChild(script);
-    };
-
-    loadLibrary();
-
-    return () => {
-      mounted = false;
-      if (script && script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-      stopScanning();
-    };
-  }, []);
-
-  const startScanning = async () => {
+  const startScanning = useCallback(async () => {
     try {
       if (!window.ZXing) {
-        setError('QR scanner library not loaded');
+        if (isMountedRef.current) {
+          setError('QR scanner library not loaded');
+          onError?.('QR scanner library not loaded');
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -206,9 +167,9 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
 
             if (result) {
               const scannedText = result.getText();
-              
+              console.log('scannedText', scannedText);
               const extractedCode = extractCodeFromURL(scannedText);
-
+              console.log('extractedCode', extractedCode);
               if (extractedCode) {
                 // Only stop scanning if shouldStopOnScan is true
                 // Otherwise, continue scanning and let parent handle the API call
@@ -219,31 +180,52 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
                 // Call success callback with extracted code
                 onScanSuccess(extractedCode);
               } else {
-                // Invalid QR code format
-                setError('Invalid QR code format. Please scan a valid BagCaddie tag.');
-                setTimeout(() => setError(''), 3000);
+                // Invalid QR code format - show error but keep scanning
+                console.warn('Invalid QR code format');
+                if (isMountedRef.current) {
+                  setError('Invalid QR code format. Please scan a valid BagCaddie tag.');
+                  // Clear error after 3 seconds
+                  setTimeout(() => {
+                    if (isMountedRef.current) {
+                      setError('');
+                    }
+                  }, 3000);
+                }
               }
             } else if (err && err.name !== 'NotFoundException') {
               // NotFoundException is normal when no QR code is detected
-              // console.error('Scanning error:', err);
+              // Only set error for actual errors, not NotFoundException
+              // if (err.name !== 'NotFoundException' && !error) {
+              //   console.error('Scanning error:', err);
+              // }
             }
           }
         );
       } catch (playError: any) {
         // Handle play() interruption errors
         if (playError.name !== 'AbortError' && playError.name !== 'NotAllowedError') {
-          // console.error('Error playing video:', playError);
-          setError('Failed to start camera. Please try again.');
-          onError?.('Failed to start camera.');
+          if (isMountedRef.current) {
+            const errorMsg = 'Failed to start camera. Please try again.';
+            setError(errorMsg);
+            onError?.(errorMsg);
+            setIsLoading(false);
+            setIsScanning(false);
+          }
         }
         // Clean up stream on error
         if (stream) {
           stream.getTracks().forEach((track) => track.stop());
         }
-        setIsLoading(false);
-        setIsScanning(false);
+        if (isMountedRef.current && playError.name === 'AbortError' || playError.name === 'NotAllowedError') {
+          setIsLoading(false);
+          setIsScanning(false);
+        }
       }
     } catch (err: any) {
+      if (!isMountedRef.current) {
+        return;
+      }
+      
       const errorMessage = err.name === 'NotAllowedError' 
         ? 'Camera access denied. Please allow camera permissions.'
         : err.name === 'NotFoundError'
@@ -255,7 +237,58 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
       setIsLoading(false);
       setIsScanning(false);
     }
-  };
+  }, [isPaused, shouldStopOnScan, onScanSuccess, onError]);
+
+  // Load ZXing library and start scanning
+  useEffect(() => {
+    // Prevent re-initialization if already initialized
+    // Don't prevent if there's just a scan error (invalid QR code) - allow retry
+    if (codeReaderRef.current || streamRef.current) {
+      return;
+    }
+
+    let script: HTMLScriptElement | null = null;
+    let mounted = true;
+
+    const loadLibrary = () => {
+      // Check if already loaded
+      if (window.ZXing) {
+        if (mounted) {
+          setIsLoading(false);
+          startScanning();
+        }
+        return;
+      }
+
+      script = document.createElement('script');
+      script.src = 'https://unpkg.com/@zxing/library@latest';
+      script.async = true;
+      script.onload = () => {
+        if (mounted) {
+          setIsLoading(false);
+          startScanning();
+        }
+      };
+      script.onerror = () => {
+        if (mounted) {
+          setError('Failed to load QR scanner library');
+          setIsLoading(false);
+          onError?.('Failed to load QR scanner library');
+        }
+      };
+      document.body.appendChild(script);
+    };
+
+    loadLibrary();
+
+    return () => {
+      mounted = false;
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      stopScanning();
+    };
+  }, [startScanning, onError, error]);
 
   const stopScanning = () => {
     setIsScanning(false);
@@ -311,26 +344,8 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#C8A654] mx-auto mb-2"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B3802B] mx-auto mb-2"></div>
           <p className="text-sm text-gray-600">Loading scanner...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <div className="text-center p-4">
-          <p className="text-red-600 text-sm mb-4">{error}</p>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="text-sm text-[#C8A654] hover:underline"
-            >
-              Close
-            </button>
-          )}
         </div>
       </div>
     );
@@ -348,12 +363,12 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
         
         {/* Scanning overlay */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-64 h-64 border-4 border-[#C8A654] rounded-lg relative">
+          <div className="w-64 h-64 border-4 border-solid border-[#B3802B] rounded-lg relative">
             {/* Corner brackets */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#C8A654]" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#C8A654]" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#C8A654]" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#C8A654]" />
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-solid border-[#B3802B]" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-solid border-[#B3802B]" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-solid border-[#B3802B]" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-solid border-[#B3802B]" />
           </div>
         </div>
         
@@ -366,6 +381,7 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
           </div>
         )}
       </div>
+      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
     </div>
   );
 });
