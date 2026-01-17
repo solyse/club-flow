@@ -363,7 +363,7 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
         
         {/* Scanning overlay */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-64 h-64 border-4 border-solid border-[#B3802B] rounded-lg relative">
+          <div className="w-48 sm:w-64 h-[100%] sm:h-64 border-2 sm:border-4 border-solid border-[#B3802B] rounded-lg relative">
             {/* Corner brackets */}
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-solid border-[#B3802B]" />
             <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-solid border-[#B3802B]" />

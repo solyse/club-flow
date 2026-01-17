@@ -30,6 +30,7 @@ interface ClubAccessComponentProps {
   onComplete?: (contactInfo: string) => void;
   onQRSuccess?: (customerData: CustomerData) => void;
   redirectToBooking?: () => void | Promise<void>;
+  defaultTab?: TabType;
 }
 
 interface ShippingOption {
@@ -188,10 +189,11 @@ export function ClubAccessComponent({
   asConfigData,
   onComplete,
   onQRSuccess,
-  redirectToBooking
+  redirectToBooking,
+  defaultTab = 'mobile'
 }: ClubAccessComponentProps) {
   const [contact, setContact] = useState('');
-  const [activeTab, setActiveTab] = useState<'mobile' | 'email' | 'club_code'>('mobile');
+  const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
   const [clubCode, setClubCode] = useState<string[]>(Array(8).fill(''));
   const [error, setError] = useState<string>('');
   const [showQRScan, setShowQRScan] = useState(false);

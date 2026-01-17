@@ -17,7 +17,7 @@ export function AccessTabs({ activeTab, onTabChange }: AccessTabsProps) {
       <button
         type="button"
         onClick={() => onTabChange('mobile')}
-        className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium transition-all bc-tab-mobile ${
+        className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2.5 px-1 sm:px-4 text-sm font-medium transition-all bc-tab-mobile ${
           activeTab === 'mobile'
             ? 'bc-active-tab'
             : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
@@ -35,7 +35,7 @@ export function AccessTabs({ activeTab, onTabChange }: AccessTabsProps) {
       <button
         type="button"
         onClick={() => onTabChange('email')}
-        className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium transition-all bc-tab-email ${
+        className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2.5 px-1 sm:px-4 text-sm font-medium transition-all bc-tab-email ${
           activeTab === 'email'
             ? 'bc-active-tab'
             : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
@@ -53,7 +53,7 @@ export function AccessTabs({ activeTab, onTabChange }: AccessTabsProps) {
       <button
         type="button"
         onClick={() => onTabChange('club_code')}
-        className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium transition-all bc-tab-club ${
+        className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2.5 px-1 sm:px-4 text-sm font-medium transition-all bc-tab-club ${
           activeTab === 'club_code'
             ? 'bc-active-tab'
             : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'

@@ -182,12 +182,12 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, e
                 autoFocus
               >
                 <InputOTPGroup>
-                  <InputOTPSlot index={0} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
-                  <InputOTPSlot index={1} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
-                  <InputOTPSlot index={2} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
-                  <InputOTPSlot index={3} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
-                  <InputOTPSlot index={4} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
-                  <InputOTPSlot index={5} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={0} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[46px] min-[430px]:w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={1} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[46px] min-[430px]:w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={2} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[46px] min-[430px]:w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={3} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[46px] min-[430px]:w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={4} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[46px] min-[430px]:w-[55px] data-[active=true]:!border-[#c8a654]" />
+                  <InputOTPSlot index={5} className="!border-[#d1d5db] !border !rounded-[6px] h-[40px] w-[46px] min-[430px]:w-[55px] data-[active=true]:!border-[#c8a654]" />
                 </InputOTPGroup>
               </InputOTP>
             </div>

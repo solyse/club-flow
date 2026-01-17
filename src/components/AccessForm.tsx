@@ -145,7 +145,7 @@ export function AccessForm({
                   onChange={(e) => onClubCodeChange(index, e.target.value)}
                   onKeyDown={(e) => onClubCodeKeyDown(index, e)}
                   onPaste={index === 0 ? onClubCodePaste : undefined}
-                  className="w-[52px] h-[50px] sm:w-[52px] sm:h-[50px] px-[8px] text-center text-base sm:text-lg border-1 border-gray-300 rounded-[6px] focus:border-[#C8A654] focus:ring-2 focus:ring-[#C8A654] focus:outline-none transition-all"
+                  className="w-[38px] h-[40px] sm:w-[52px] sm:h-[50px] px-[3px] sm:px-[8px] text-center text-base sm:text-lg border-1 border-gray-300 rounded-[6px] focus:border-[#C8A654] focus:ring-2 focus:ring-[#C8A654] focus:outline-none transition-all"
                   autoFocus={index === 0}
                 />
               ))}

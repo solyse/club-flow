@@ -12,10 +12,11 @@ import { AccessForm } from './AccessForm';
 interface AccessStepProps {
   onSubmit: (contact: string) => void;
   onQRSuccess?: (customerData: CustomerData) => void;
+  defaultTab?: TabType;
 }
 
-export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('mobile');
+export function AccessStep({ onSubmit, onQRSuccess, defaultTab = 'email' }: AccessStepProps) {
+  const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
   const [contact, setContact] = useState('');
   const [clubCode, setClubCode] = useState<string[]>(Array(8).fill(''));
   const [showQRScan, setShowQRScan] = useState(false);
@@ -276,7 +277,7 @@ export function AccessStep({ onSubmit, onQRSuccess }: AccessStepProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.5 }}
       >
-        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 mb-4 hover:ring-2 hover:ring-[#C8A654] hover:border-[#C8A654] focus-within:ring-2 focus-within:ring-[#C8A654] focus-within:border-[#C8A654] transition-all max-w-[560px] mx-auto">
+        <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200 mb-4 hover:ring-2 hover:ring-[#B3802B] hover:border-[#B3802B] focus-within:ring-2 focus-within:ring-[#B3802B] focus-within:border-[#B3802B] transition-all max-w-[560px] mx-auto">
           <AccessForm
             activeTab={activeTab}
             onTabChange={(tab) => {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AccessStep } from './components/AccessStep';
+import { type TabType } from './components/AccessTabs';
 import { VerifyModal } from './components/VerifyModal';
 import { RegisterStep } from './components/RegisterStep';
 import { ProgressIndicator } from './components/ProgressIndicator';
@@ -41,6 +42,7 @@ function App() {
   const [eventPartnerDisplayName, setEventPartnerDisplayName] = useState<string | null>(null);
   const eventLoadingRef = useRef(false); // Prevent duplicate API calls
   const loadedEventIdRef = useRef<string | null>(null); // Track which event ID we've loaded
+  const defaultTab: TabType = 'mobile';
   const [loadingStates, setLoadingStates] = useState({
     products: true,
     location: true,
@@ -579,6 +581,7 @@ function App() {
           onComplete={handleAccessSubmit}
           onQRSuccess={handleQRSuccess}
           redirectToBooking={redirectToBooking}
+          defaultTab={defaultTab}
         />
       </div>
     );
@@ -631,7 +634,7 @@ function App() {
         <div className="mx-auto" style={{ maxWidth: '500px' }}>
           {currentStep === 'access' && (
             <>
-              <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} />
+              <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} defaultTab={defaultTab} />
               {/* <HelpfulTipsCard /> */}
             </>
           )}
