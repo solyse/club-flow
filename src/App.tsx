@@ -582,6 +582,7 @@ function App() {
           onQRSuccess={handleQRSuccess}
           redirectToBooking={redirectToBooking}
           defaultTab={defaultTab}
+          onSetCurrentStep={(step: string) => {setCurrentStep(step as Step);}}
         />
       </div>
     );
@@ -635,7 +636,6 @@ function App() {
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} defaultTab={defaultTab} />
-              {/* <HelpfulTipsCard /> */}
             </>
           )}
 
@@ -684,6 +684,10 @@ function App() {
             onSubmit={handleVerifySubmit}
             redirectToBooking={redirectToBooking}
             eventData={eventData}
+            onSetCurrentStep={(step: string) => {
+              setCurrentStep(step as Step);
+              setIsVerifyModalOpen(false);
+            }}
           />
         </div>
       </main>

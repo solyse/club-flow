@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { apiService, Product, LocationInfo } from '../services/api';
 import { storage } from '../services/storage';
+import { envConfig } from '../config/env';
 
 interface RegisterStepProps {
   contactInfo: string;
@@ -24,7 +25,12 @@ interface RegisterStepProps {
 export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: RegisterStepProps) {
   const isEmail = contactInfo.includes('@');
   const productOptions = useMemo(() => products || [], [products]);
-  const defaultProductId = productOptions.length > 0 ? productOptions[0].id : '';
+  const defaultProductId = useMemo(() => {
+    const configuredId = envConfig.itemId;
+    const found = productOptions.some((p) => String(p.id) === configuredId);
+    if (found) return configuredId;
+    return productOptions.length > 0 ? productOptions[0].id : '';
+  }, [productOptions]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',

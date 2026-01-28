@@ -153,8 +153,6 @@ export function AccessStep({ onSubmit, onQRSuccess, defaultTab = 'email' }: Acce
           if (otpSuccess) {
             // Track OTP start event
             AnalyticsService.trackOtpStart('email');
-            console.log("OTP Start Fired", { method: 'email' });
-
             if (partner?.items && partner.items.length > 0) {
               try {
                 await apiService.processAndStorePartnerItems(partner);
@@ -181,7 +179,6 @@ export function AccessStep({ onSubmit, onQRSuccess, defaultTab = 'email' }: Acce
           if (otpSuccess) {
             // Track OTP start event
             AnalyticsService.trackOtpStart('email');
-            console.log("OTP Start Fired", { method: 'email' });
             onSubmit(email);
           } else {
             setError((otpResp as any)?.data?.message || 'Failed to send verification code.');
@@ -219,7 +216,6 @@ export function AccessStep({ onSubmit, onQRSuccess, defaultTab = 'email' }: Acce
           if (otpSuccess) {
             // Track OTP start event
             AnalyticsService.trackOtpStart('phone');
-            console.log("OTP Start Fired", { method: 'phone' });
             if (partner?.items && partner.items.length > 0) {
               try {
                 await apiService.processAndStorePartnerItems(partner);
@@ -246,7 +242,6 @@ export function AccessStep({ onSubmit, onQRSuccess, defaultTab = 'email' }: Acce
           if (otpSuccess) {
             // Track OTP start event
             AnalyticsService.trackOtpStart('phone');
-            console.log("OTP Start Fired", { method: 'phone' });
             onSubmit(phone.value);
           } else {
             setError((otpResp as any)?.data?.message || 'Failed to send verification code.');

@@ -12,10 +12,11 @@ interface VerifyStepProps {
   onSubmit: (code: string, hasPartner: boolean) => void;
   onBack: () => void;
   redirectToBooking: () => void | Promise<void>;
+  onSetCurrentStep: (step: string) => void;
   eventData?: EventMetaObject | null;
 }
 
-export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, eventData }: VerifyStepProps) {
+export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, onSetCurrentStep, eventData }: VerifyStepProps) {
   const [code, setCode] = useState('');
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
@@ -70,7 +71,7 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, e
             partnerData = (partnerResp as any).data.data;
             if (partnerData) {
               storage.setItemsOwner(partnerData);
-              
+
               // If partner has items, enrich and store them
               if (partnerData.items && partnerData.items.length > 0) {
                 try {
@@ -86,10 +87,14 @@ export function VerifyStep({ contactInfo, onSubmit, onBack, redirectToBooking, e
                 generateEventQuote(eventData, partnerData);
               }
             }
+            storage.setContactInfo(partnerPayload);
+            redirectToBooking();
+          } else {
+            storage.setContactInfo(partnerPayload);
+            onSetCurrentStep('register');
           }
-          
-          storage.setContactInfo(partnerPayload);          
-          redirectToBooking();
+
+
         } catch (partnerErr) {
           // If partner check fails, assume no partner
           console.error('Error checking partner:', partnerErr);

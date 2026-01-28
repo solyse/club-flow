@@ -10,11 +10,11 @@ import { usePhoneValidation } from './usePhoneValidation';
 import { toast } from 'sonner';
 import { getHeroImage } from '../data/heroImages';
 import { ShippingRate, QuoteData, CustomerData, apiService, LocationInfo, AsConfigData } from '../services/api';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
 import { storage } from '../services/storage';
 import { WelcomeHeading } from './WelcomeHeading';
 import { QRScanModal } from './QRScanModal';
 import { RegisterStep } from './RegisterStep';
+import { VerifyModal } from './VerifyModal';
 import { Product } from '../services/api';
 import { RateFallback } from './RateFallback';
 import { AccessTabs, type TabType } from './AccessTabs';
@@ -31,6 +31,7 @@ interface ClubAccessComponentProps {
   onQRSuccess?: (customerData: CustomerData) => void;
   redirectToBooking?: () => void | Promise<void>;
   defaultTab?: TabType;
+  onSetCurrentStep?: (step: string) => void;
 }
 
 interface ShippingOption {
@@ -190,6 +191,7 @@ export function ClubAccessComponent({
   onComplete,
   onQRSuccess,
   redirectToBooking,
+  onSetCurrentStep,
   defaultTab = 'mobile'
 }: ClubAccessComponentProps) {
   const [contact, setContact] = useState('');
@@ -203,13 +205,7 @@ export function ClubAccessComponent({
   const [isLoadingClubCode, setIsLoadingClubCode] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const clubCodeInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [showOtpVerification, setShowOtpVerification] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [otpError, setOtpError] = useState('');
-  const [resendTimer, setResendTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
-  const [isResending, setIsResending] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [contactInfo, setContactInfo] = useState('');
   const [showRegisterStep, setShowRegisterStep] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -233,22 +229,10 @@ export function ClubAccessComponent({
   const phone = usePhoneValidation(callingCode);
   // Auto-focus the input field when component mounts
   useEffect(() => {
-    if (inputRef.current && !showOtpVerification) {
+    if (inputRef.current && !isVerifyModalOpen) {
       inputRef.current.focus();
     }
-  }, [showOtpVerification]);
-
-  // Resend timer countdown
-  useEffect(() => {
-    if (resendTimer > 0 && showOtpVerification) {
-      const timer = setTimeout(() => {
-        setResendTimer(resendTimer - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setCanResend(true);
-    }
-  }, [resendTimer, showOtpVerification]);
+  }, [isVerifyModalOpen]);
 
   // Load products from storage
   useEffect(() => {
@@ -289,39 +273,39 @@ export function ClubAccessComponent({
 
         // Validate that all three service types have valid prices
         const missingServices: string[] = [];
-        
+
         // Check standard service - validate price and that rate was found
-        const isStandardValid = 
+        const isStandardValid =
           prices.standard !== undefined &&
           prices.standard !== null &&
           !isNaN(prices.standard) &&
           prices.standard > 0 &&
           Object.keys(shipperInfo.standard).length > 0;
-        
+
         if (!isStandardValid) {
           missingServices.push('standard');
         }
 
         // Check expedited service - validate price and that rate was found
-        const isExpeditedValid = 
+        const isExpeditedValid =
           prices.expedited !== undefined &&
           prices.expedited !== null &&
           !isNaN(prices.expedited) &&
           prices.expedited > 0 &&
           Object.keys(shipperInfo.expedited).length > 0;
-        
+
         if (!isExpeditedValid) {
           missingServices.push('expedited');
         }
 
         // Check overnight service - validate price and that rate was found
-        const isOvernightValid = 
+        const isOvernightValid =
           prices.overnight !== undefined &&
           prices.overnight !== null &&
           !isNaN(prices.overnight) &&
           prices.overnight > 0 &&
           Object.keys(shipperInfo.overnight).length > 0;
-        
+
         if (!isOvernightValid) {
           missingServices.push('overnight');
         }
@@ -403,9 +387,9 @@ export function ClubAccessComponent({
   // Compute form validity based on active tab
   const isFormValid =
     activeTab === 'mobile' ? phone.isValid :
-    activeTab === 'email' ? (contact.trim() !== '' && validateEmail(contact.trim())) :
-    activeTab === 'club_code' ? clubCode.every(char => char !== '') :
-    false;
+      activeTab === 'email' ? (contact.trim() !== '' && validateEmail(contact.trim())) :
+        activeTab === 'club_code' ? clubCode.every(char => char !== '') :
+          false;
 
 
   // Club code input handlers
@@ -502,7 +486,7 @@ export function ClubAccessComponent({
     }
 
     setIsLoading(true);
-    setOtpError('');
+    setError('');
 
     try {
       const normalizedPhone = activeTab === 'mobile' ? phone.value : '';
@@ -543,138 +527,17 @@ export function ClubAccessComponent({
 
         toast.success('Verification code sent!');
         setContactInfo(activeTab === 'email' ? raw : normalizedPhone);
-        setShowOtpVerification(true);
-        setResendTimer(30);
-        setCanResend(false);
+        setIsVerifyModalOpen(true);
       } else {
-        setOtpError((otpResp as any)?.data?.message || 'Failed to send verification code.');
+        setError((otpResp as any)?.data?.message || 'Failed to send verification code.');
         toast.error((otpResp as any)?.data?.message || 'Failed to send verification code.');
       }
     } catch (error) {
       console.error('Error sending OTP:', error);
-      setOtpError('Unable to send verification code. Please try again.');
+      setError('Unable to send verification code. Please try again.');
       toast.error('Unable to send verification code. Please try again.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleOtpVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (otpCode.length !== 6) {
-      setOtpError('Please enter a 6-digit code.');
-      return;
-    }
-
-    setIsVerifying(true);
-    setOtpError('');
-
-    try {
-      const isEmail = contactInfo.includes('@');
-      const payload = {
-        code: otpCode,
-        email: isEmail ? contactInfo : undefined,
-        phone: !isEmail ? contactInfo : undefined,
-      };
-
-      const resp = await apiService.verifyAuth(payload);
-      const ok = (resp as any)?.data?.success === true;
-
-      if (ok) {
-        toast.success('Code verified successfully');
-        // Check if partner exists
-        let hasPartner = false;
-        let partnerData = null;
-        try {
-          const partnerPayload = isEmail
-            ? { email: contactInfo }
-            : { phone: contactInfo };
-
-          const partnerResp = await apiService.getPartner(partnerPayload);
-          hasPartner = (partnerResp as any)?.data?.success === true;
-
-          // If partner exists, store itemsOwner and enrich items
-          if (hasPartner) {
-            partnerData = (partnerResp as any).data.data;
-            if (partnerData) {
-              storage.setItemsOwner(partnerData);
-              // If partner has items, enrich and store them
-              if (partnerData.items && partnerData.items.length > 0) {
-                try {
-                  await apiService.processAndStorePartnerItems(partnerData);
-                } catch (err) {
-                  console.error('Error enriching partner items:', err);
-                  // Continue even if enrichment fails
-                }
-              }
-            }
-          }
-          //store the partner data in localStorage
-          storage.setContactInfo(partnerPayload);
-          redirectToBooking();
-        } catch (partnerErr) {
-          // If partner check fails, assume no partner
-          console.error('Error checking partner:', partnerErr);
-          hasPartner = false;
-        }
-
-      } else {
-        setOtpError((resp as any)?.data?.message || 'Invalid verification code');
-        toast.error((resp as any)?.data?.message || 'Invalid verification code');
-      }
-    } catch (error) {
-      console.error('Error verifying OTP:', error);
-      setOtpError('Unable to verify code. Please try again.');
-      toast.error('Unable to verify code. Please try again.');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (!canResend || isResending) return;
-
-    setIsResending(true);
-    setOtpError('');
-
-    try {
-      const isEmail = contactInfo.includes('@');
-      const partnerPayload = isEmail
-        ? { email: contactInfo }
-        : { phone: contactInfo };
-
-      const partnerResp = await apiService.getPartner(partnerPayload);
-      const partner = (partnerResp as any)?.data?.success === true
-        ? (partnerResp as any).data.data
-        : null;
-
-      const otpPayload = {
-        type: isEmail ? 'email' as const : 'phone' as const,
-        first_name: partner?.firstName || 'User',
-        last_name: partner?.lastName || '',
-        email: isEmail ? contactInfo : undefined,
-        phone: !isEmail ? contactInfo : undefined,
-      };
-
-      const otpResp = await apiService.sendOtp(otpPayload);
-      const otpSuccess = (otpResp as any)?.data?.success === true;
-
-      if (otpSuccess) {
-        toast.success('Verification code resent!');
-        setResendTimer(30);
-        setCanResend(false);
-        setOtpCode('');
-      } else {
-        setOtpError((otpResp as any)?.data?.message || 'Failed to resend verification code.');
-        toast.error((otpResp as any)?.data?.message || 'Failed to resend verification code.');
-      }
-    } catch (error) {
-      console.error('Error resending OTP:', error);
-      setOtpError('Unable to resend verification code. Please try again.');
-      toast.error('Unable to resend verification code. Please try again.');
-    } finally {
-      setIsResending(false);
     }
   };
 
@@ -782,7 +645,7 @@ export function ClubAccessComponent({
         {(ratesError || localRatesError) ? (
           <>
             <RateFallback
-              entryMode="QuickQuote"              
+              entryMode="QuickQuote"
             />
           </>
         ) : (
@@ -897,144 +760,35 @@ export function ClubAccessComponent({
               className="max-w-lg mx-auto"
             >
               <div className="bg-white rounded-2xl border border-gray-200 px-8 pb-8 pt-8 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                {/* OTP Verification Form */}
-                {showOtpVerification ? (
-                  <form onSubmit={handleOtpVerification} className="space-y-5">
-                    <div className="text-center mb-6">
-                      <h2
-                        className="text-[#111111] mb-2"
-                        style={{ fontSize: '24px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
-                      >
-                        Enter Verification Code
-                      </h2>
-                      <p
-                        className="text-[#666666]"
-                        style={{ fontSize: '14px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-                      >
-                        We sent a 6-digit code to {contactInfo}
-                      </p>
-                    </div>
+                {/* Contact Input Form */}
+                <div className="space-y-5 bc-auth-form">
+                  <p className="text-gray-900 mb-4 px-2" style={{ fontSize: '13px' }}>
+                    New or returning member — verify once and travel with ease.
+                  </p>
 
-                    {/* OTP Input */}
-                    <div className="flex justify-center">
-                      <InputOTP
-                        maxLength={6}
-                        value={otpCode}
-                        onChange={(value) => {
-                          setOtpCode(value);
-                          setOtpError('');
-                        }}
-                        autoFocus
-                      >
-                        <InputOTPGroup>
-                          <InputOTPSlot index={0} />
-                          <InputOTPSlot index={1} />
-                          <InputOTPSlot index={2} />
-                          <InputOTPSlot index={3} />
-                          <InputOTPSlot index={4} />
-                          <InputOTPSlot index={5} />
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </div>
-
-                    {/* Error Message */}
-                    {otpError && (
-                      <div className="text-center">
-                        <p className="text-red-600 text-sm">{otpError}</p>
-                      </div>
-                    )}
-
-                    {/* Resend Code */}
-                    <div className="text-center">
-                      {canResend ? (
-                        <button
-                          type="button"
-                          onClick={handleResendOtp}
-                          disabled={isResending}
-                          className="text-[#D4AF37] hover:text-[#c29d2f] hover:underline transition-colors disabled:opacity-50"
-                          style={{ fontSize: '14px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-                        >
-                          {isResending ? 'Sending...' : 'Resend code'}
-                        </button>
-                      ) : (
-                        <p
-                          className="text-[#888888]"
-                          style={{ fontSize: '14px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-                        >
-                          Resend code in {resendTimer}s
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Back Button */}
-                    <div className="text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowOtpVerification(false);
-                          setOtpCode('');
-                          setOtpError('');
-                          setResendTimer(30);
-                          setCanResend(false);
-                        }}
-                        className="text-[#888888] hover:text-[#111111] transition-colors"
-                        style={{ fontSize: '14px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-                      >
-                        ← Back
-                      </button>
-                    </div>
-
-                    {/* Verify Button */}
-                    <button
-                      type="submit"
-                      disabled={isVerifying || otpCode.length !== 6}
-                      className="w-full h-14 bg-[#D4AF37] text-[#111111] rounded-xl hover:bg-[#C49A2E] hover:shadow-[0_6px_16px_rgba(212,175,55,0.4)] hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                      style={{ fontSize: '16px', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
-                    >
-                      {isVerifying ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-[#111111] border-t-transparent rounded-full animate-spin" />
-                          <span>Verifying...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Verify & Continue</span>
-                          <ArrowRight className="w-5 h-5" />
-                        </>
-                      )}
-                    </button>
-                  </form>
-                ) : (
-                  /* Contact Input Form */
-                  <div className="space-y-5 bc-auth-form">
-                    <p className="text-gray-900 mb-4 px-2" style={{ fontSize: '13px' }}>
-                      New or returning member — verify once and travel with ease.
-                    </p>
-                    
-                    <AccessForm
-                      activeTab={activeTab}
-                      onTabChange={(tab) => {
-                        setActiveTab(tab);
-                        setError('');
-                      }}
-                      phone={phone}
-                      contact={contact}
-                      onContactChange={setContact}
-                      clubCode={clubCode}
-                      onClubCodeChange={handleClubCodeChange}
-                      onClubCodeKeyDown={handleClubCodeKeyDown}
-                      onClubCodePaste={handleClubCodePaste}
-                      isFormValid={isFormValid}
-                      isLoading={isLoading}
-                      isLoadingClubCode={isLoadingClubCode}
-                      error={error}
-                      onSubmit={handleSubmit}
-                      onQRScanClick={() => setShowQRScan(true)}
-                      emailAutoFocus={true}
-                      clubCodeInputRefs={clubCodeInputRefs}
-                    />
-                  </div>
-                )}
+                  <AccessForm
+                    activeTab={activeTab}
+                    onTabChange={(tab) => {
+                      setActiveTab(tab);
+                      setError('');
+                    }}
+                    phone={phone}
+                    contact={contact}
+                    onContactChange={setContact}
+                    clubCode={clubCode}
+                    onClubCodeChange={handleClubCodeChange}
+                    onClubCodeKeyDown={handleClubCodeKeyDown}
+                    onClubCodePaste={handleClubCodePaste}
+                    isFormValid={isFormValid}
+                    isLoading={isLoading}
+                    isLoadingClubCode={isLoadingClubCode}
+                    error={error}
+                    onSubmit={handleSubmit}
+                    onQRScanClick={() => setShowQRScan(true)}
+                    emailAutoFocus={true}
+                    clubCodeInputRefs={clubCodeInputRefs}
+                  />
+                </div>
               </div>
 
               {/* QR Scan Modal */}
@@ -1047,6 +801,22 @@ export function ClubAccessComponent({
                   }}
                 />
               )}
+
+              {/* Verify Modal - same UI as mode=login */}
+              <VerifyModal
+                isOpen={isVerifyModalOpen}
+                onClose={() => setIsVerifyModalOpen(false)}
+                contactInfo={contactInfo}
+                onSubmit={() => {}}
+                redirectToBooking={redirectToBooking ?? (() => {})}
+                eventData={null}
+                onSetCurrentStep={(step) => {
+                  setIsVerifyModalOpen(false);
+                  if (step === 'register') {
+                    setShowRegisterStep(true);
+                  }
+                }}
+              />
             </motion.div>
           </div>
         ) : (
@@ -1066,9 +836,7 @@ export function ClubAccessComponent({
                 }}
                 onBack={() => {
                   setShowRegisterStep(false);
-                  setShowOtpVerification(false);
-                  setOtpCode('');
-                  setOtpError('');
+                  setIsVerifyModalOpen(false);
                 }}
               />
             </motion.div>

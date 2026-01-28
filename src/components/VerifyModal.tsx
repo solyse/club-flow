@@ -14,6 +14,7 @@ interface VerifyModalProps {
   onSubmit: (code: string, hasPartner: boolean) => void;
   redirectToBooking: () => void | Promise<void>;
   eventData?: EventMetaObject | null;
+  onSetCurrentStep: (step: string) => void;
 }
 
 export function VerifyModal({
@@ -23,6 +24,7 @@ export function VerifyModal({
   onSubmit,
   redirectToBooking,
   eventData,
+  onSetCurrentStep,
 }: VerifyModalProps) {
   const isEmail = contactInfo.includes('@');
   const title = isEmail ? 'Verify your email' : 'Verify your phone number';
@@ -38,6 +40,7 @@ export function VerifyModal({
           onSubmit={onSubmit}
           onBack={onClose}
           redirectToBooking={redirectToBooking}
+          onSetCurrentStep={onSetCurrentStep}
           eventData={eventData}
         />
       </DialogContent>
