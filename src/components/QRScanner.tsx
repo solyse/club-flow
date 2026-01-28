@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 
+export type QRCodeType = 'item' | 'club';
+
+export interface ExtractedQRResult {
+  code: string;
+  type: QRCodeType;
+}
+
 interface QRScannerProps {
-  onScanSuccess: (code: string) => void;
+  onScanSuccess: (code: string, type?: QRCodeType) => void;
   onError?: (error: string) => void;
   onClose?: () => void;
   shouldStopOnScan?: boolean; // If true, stops scanning immediately when code is found. If false, keeps scanning.
@@ -28,70 +35,65 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
   const [error, setError] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
 
-  // Extract and validate code from URL
-  const extractCodeFromURL = (url: string): string | null => {
+  // Extract and validate code from URL; supports both item and club URLs.
+  // Returns { code, type: 'item' | 'club' } or null.
+  const extractCodeFromURL = (url: string): ExtractedQRResult | null => {
     try {
-      // Check if URL contains "item"
-      if (!url.toLowerCase().includes('item')) {
+      const lower = url.toLowerCase();
+      if (!lower.includes('item') && !lower.includes('club')) {
         return null;
       }
 
-      // Extract code from URL pattern: https://bagcaddie.com/item/?KW0UXZT3
       let code: string | null = null;
+      let type: QRCodeType = 'item';
 
       try {
         const urlObj = new URL(url);
         const pathname = urlObj.pathname.toLowerCase();
-        
-        // Check if pathname contains "item"
-        if (!pathname.includes('item')) {
+
+        if (pathname.includes('club')) {
+          type = 'club';
+        } else if (pathname.includes('item')) {
+          type = 'item';
+        } else {
           return null;
         }
 
-        // Try to get code from query parameters
-        // Pattern: /item/?CODE or /item?CODE
         const searchParams = urlObj.search;
         if (searchParams) {
-          // Extract from query string like ?KW0UXZT3 (no parameter name)
           const queryMatch = searchParams.match(/\?([A-Za-z0-9]{8})$/);
-          if (queryMatch && queryMatch[1]) {
+          if (queryMatch?.[1]) {
             code = queryMatch[1];
           } else {
-            // Try query parameters
-            const codeParam = urlObj.searchParams.get('code') || 
-                             urlObj.searchParams.get('c') || 
-                             urlObj.searchParams.get('id');
-            if (codeParam) {
-              code = codeParam;
-            }
+            const codeParam =
+              urlObj.searchParams.get('code') ||
+              urlObj.searchParams.get('c') ||
+              urlObj.searchParams.get('id');
+            if (codeParam) code = codeParam;
           }
         } else {
-          // Try to extract from path like /item/CODE
-          const pathMatch = pathname.match(/\/item\/([A-Za-z0-9]{8})/i);
-          if (pathMatch && pathMatch[1]) {
-            code = pathMatch[1];
-          }
+          const pathMatch = pathname.match(/\/(?:item|club)\/([A-Za-z0-9]{8})/i);
+          if (pathMatch?.[1]) code = pathMatch[1];
         }
       } catch {
-        // If URL parsing fails, try regex extraction
-        // Pattern: /item/?CODE
-        const match = url.match(/\/item\/?\?([A-Za-z0-9]{8})/i);
-        if (match && match[1]) {
-          code = match[1];
-        } else {
-          // Try to extract any 8-character alphanumeric code near "item"
-          const codeMatch = url.match(/item[\/\?]([A-Za-z0-9]{8})/i);
-          if (codeMatch && codeMatch[1]) {
-            code = codeMatch[1];
-          }
+        const itemMatch = url.match(/\/item\/?\?([A-Za-z0-9]{8})/i);
+        const clubMatch = url.match(/\/club\/?\?([A-Za-z0-9]{8})/i);
+        const genericMatch = url.match(/(?:item|club)[\/\?]([A-Za-z0-9]{8})/i);
+        if (itemMatch?.[1]) {
+          code = itemMatch[1];
+          type = 'item';
+        } else if (clubMatch?.[1]) {
+          code = clubMatch[1];
+          type = 'club';
+        } else if (genericMatch?.[1]) {
+          code = genericMatch[1];
+          type = lower.includes('club') ? 'club' : 'item';
         }
       }
 
-      // Validate code is exactly 8 characters alphanumeric
       if (code && /^[A-Za-z0-9]{8}$/.test(code)) {
-        return code.toUpperCase();
+        return { code: code.toUpperCase(), type };
       }
-
       return null;
     } catch (err) {
       console.error('Error extracting code from URL:', err);
@@ -176,9 +178,7 @@ export const QRScanner = forwardRef<QRScannerRef, QRScannerProps>(
                 if (shouldStopOnScan) {
                   stopScanning();
                 }
-                
-                // Call success callback with extracted code
-                onScanSuccess(extractedCode);
+                onScanSuccess(extractedCode.code, extractedCode.type);
               } else {
                 // Invalid QR code format - show error but keep scanning
                 console.warn('Invalid QR code format');

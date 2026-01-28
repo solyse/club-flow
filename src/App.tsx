@@ -7,7 +7,7 @@ import { ProgressIndicator } from './components/ProgressIndicator';
 import { Header } from './components/Header';
 import { Toaster } from './components/ui/sonner';
 import { Loader } from './components/Loader';
-import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData, RatesResponse, ShippingRate, AsConfigData, PlaceDetailsResponse, QuoteLocation, EventResponse, EventMetaObject } from './services/api';
+import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData,  ShippingRate, AsConfigData,  QuoteLocation, EventMetaObject } from './services/api';
 import { generateEventQuote, storeEventData } from './services/quoteUtils';
 import { storage, storageService } from './services/storage';
 import { envConfig } from './config/env';
@@ -553,7 +553,7 @@ function App() {
     } else if (quote && quote.from && quote.to) {
       redirectUrl = `${envConfig.websiteUrl}/pages/scanner/`;
     }
-    window.location.href = redirectUrl;
+    // window.location.href = redirectUrl;
   };
   // Redirect to booking page when step is 'booking'
   useEffect(() => {

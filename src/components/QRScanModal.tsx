@@ -52,7 +52,7 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
 
   return (
     <Dialog open={true} onOpenChange={handleModalClose}>
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-[500px] max-h-[50vh] overflow-y-auto"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -64,16 +64,16 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
             Position the QR code on your bag tag within the frame
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-2">
           <QRScanner
             ref={scannerRef}
-            onScanSuccess={async (code) => {
+            onScanSuccess={async (code, type) => {
               // Prevent multiple API calls for the same code
               const now = Date.now();
               const timeSinceLastCall = now - lastApiCallTimeRef.current;
               const MIN_TIME_BETWEEN_CALLS = 2000; // 2 seconds between calls for same code
-              
+
               // Skip if:
               // 1. Same code was just scanned recently (within 2 seconds)
               // 2. An API call is already in progress
@@ -84,20 +84,20 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
               ) {
                 return;
               }
-              
+
               // Update tracking
               lastScannedCodeRef.current = code;
               lastApiCallTimeRef.current = now;
               isApiCallInProgressRef.current = true;
-              
+
               // Pause scanning while validating
               setIsScannerPaused(true);
               setIsLoading(true);
               setError('');
-              
+
               try {
-                const response = await apiService.validateQRCode(code);
-                
+                const response = await apiService.validateQRCode(code, type);
+
                 if (apiService.isSuccessResponse(response)) {
                   // Success - stop scanner and call success callback
                   setShouldStopScanner(true);
@@ -137,14 +137,14 @@ export function QRScanModal({ onClose, onSuccess }: QRScanModalProps) {
             shouldStopOnScan={shouldStopScanner}
             isPaused={isScannerPaused}
           />
-          
+
           {/* Error message */}
           {error && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
-          
+
           {/* Loading overlay */}
           {isLoading && (
             <div className="mt-4 flex items-center justify-center p-4">

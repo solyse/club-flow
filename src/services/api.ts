@@ -541,21 +541,23 @@ export class ApiService {
   /**
    * Validate QR code and get customer/item details
    * @param code - 8 character QR code
+   * @param type - 'item' | 'club' (e.g. from bagcaddie.com/item/?CODE vs bagcaddie.com/club/?CODE)
    * @returns Promise with customer data or error
    */
-  public async validateQRCode(code: string): Promise<QRCodeResponse> {
+  public async validateQRCode(code: string, type?: 'item' | 'club'): Promise<QRCodeResponse> {
     try {
       // Validate code length
       if (!code || code.length !== 8) {
         throw new Error('QR code must be exactly 8 characters long.');
       }
 
-      const response = await fetch(`${this.baseURL}/item`, {
+      const path = type === 'club' ? 'club' : 'item';
+      const response = await fetch(`${this.baseURL}/${path}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, type: type ?? 'item' }),
       });
 
       if (!response.ok) {
@@ -569,7 +571,7 @@ export class ApiService {
         const customerData = responseData.data.data;
 
         // Store customer data
-        const storageSuccess = storage.setItemsOwner(customerData);
+        const storageSuccess = type === 'club' ? storage.setClubPartner(customerData) : storage.setItemsOwner(customerData);
         if (!storageSuccess) {
           console.warn('Failed to store customer data in localStorage');
         } else {

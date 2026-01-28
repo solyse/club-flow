@@ -231,6 +231,14 @@ export const storage = {
    * @param data - Customer data to store
    * @returns boolean indicating success
    */
+  setClubPartner: <T>(data: T): boolean => {
+    return storageService.setItem('CLUB_PARTNER', data);
+  },
+  /**
+   * Store items owner data
+   * @param data - Customer data to store
+   * @returns boolean indicating success
+   */
   setItemsOwner: <T>(data: T): boolean => {
     return storageService.setItem('CLUB_FLOW_OWNER', data);
   },
