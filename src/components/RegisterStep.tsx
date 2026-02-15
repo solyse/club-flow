@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react';
-import { User } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { Check, Mail, ArrowLeft, ClipboardList, Info } from 'lucide-react';
+import { ProgressIndicator } from './ProgressIndicator';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { PhoneInput } from './ui/PhoneInput';
+import { usePhoneValidation, extractCountryCode } from './usePhoneValidation';
 import {
   Select,
   SelectContent,
@@ -41,29 +44,27 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
-  // Extract phone code and phone number from contactInfo
+  const phone = usePhoneValidation(extractCountryCode(contactInfo) || '+1');
+  useEffect(() => {
+    if (!isEmail && contactInfo) phone.setValue(contactInfo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Extract phone code and phone number from current form phone value
   const getPhoneCodeAndNumber = (): { phoneCode: string; phone: string } => {
     if (isEmail) {
       // Get phone code from location cache
       const location = storage.getLocation<LocationInfo>();
       const phoneCode = location?.country_metadata?.calling_code || '+1';
       return { phoneCode, phone: formData.phone.replace(/[^0-9]/g, '') };
-    } else {
-      // Extract from contactInfo (e.g., "+8801915076890")
-      const phoneWithCode = contactInfo.trim();
-      
-      // Try to extract country code
-      // Pattern: starts with + followed by 1-4 digits
-      const codeMatch = phoneWithCode.match(/^(\+[0-9]{1,4})/);
-      const phoneCode = codeMatch ? codeMatch[1] : '+1';
-      
-      // Get phone number without country code
-      const phoneNumber = codeMatch 
-        ? phoneWithCode.replace(codeMatch[1], '').replace(/[^0-9]/g, '')
-        : phoneWithCode.replace(/[^0-9]/g, '').slice(-10); // Take last 10 digits if no code found
-      
-      return { phoneCode, phone: phoneNumber };
     }
+    const phoneWithCode = (formData.phone || contactInfo).trim();
+    const codeMatch = phoneWithCode.match(/^(\+[0-9]{1,4})/);
+    const phoneCode = codeMatch ? codeMatch[1] : '+1';
+    const phoneNumber = codeMatch
+      ? phoneWithCode.replace(codeMatch[1], '').replace(/[^0-9]/g, '')
+      : phoneWithCode.replace(/[^0-9]/g, '').slice(-10);
+    return { phoneCode, phone: phoneNumber };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,87 +150,154 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
                        (hasEmail || hasPhone);
 
   return (
-    <div>
-      <div className="text-center mb-6 sm:mb-10 px-2">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6 rounded-full bg-gray-100 flex items-center justify-center">
-          <User className="w-7 h-7 sm:w-8 sm:h-8 text-gray-600" />
+    <div className="max-w-2xl mx-auto">
+      {/* Welcome card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-5">
+        <div className="mb-6">
+          <h2 className="text-xl font-medium mb-1 text-[#121110]">Welcome to BagCaddie Club</h2>
+          <p className="text-[#D6B588] text-sm">Complete your profile to make travel effortless.</p>
         </div>
-        <h1 className="mb-4 sm:mb-6">Create Your BagCaddie Profile</h1>
-        <p className="text-gray-900">
-          Just a few details to get your shipment started.
-        </p>
+        <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
+          <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-gray-700">
+            <ClipboardList className="w-4 h-4 text-gray-600" />
+            Get Started
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-gray-500">Add your name & contact</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-gray-500">Choose your product</span>
+            </div>
+            
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-gray-500">Continue to booking</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 mb-6">
+      {/* Form card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-[#121110] mb-4">Complete Your Profile</h3>
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
+              <Label htmlFor="firstName" className="text-sm text-gray-700 mb-1.5 block">
+                First Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="firstName"
                 type="text"
-                placeholder="Enter your first name"
+                placeholder="Enter first name"
+                className="h-10"
                 value={formData.firstName}
                 onChange={(e) => handleChange('firstName', e.target.value)}
                 required
               />
             </div>
-
             <div>
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName" className="text-sm text-gray-700 mb-1.5 block">
+                Last Name
+              </Label>
               <Input
                 id="lastName"
                 type="text"
-                placeholder="Enter your last name"
+                placeholder="Enter last name"
+                className="h-10"
                 value={formData.lastName}
                 onChange={(e) => handleChange('lastName', e.target.value)}
               />
             </div>
+          </div>
 
-            <div>
-              <Label htmlFor="email">Email {hasEmail ? '' : hasPhone ? '(optional)' : <span className="text-red-500">*</span>}</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder={hasPhone ? 'Enter your email (optional)' : 'Enter your email *'}
-                value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-              />
+          <div className="mb-4">
+            <Label htmlFor="email" className="text-sm text-gray-700 mb-1.5 block">
+              Email {hasEmail ? '' : hasPhone ? '(optional)' : <span className="text-red-500">*</span>}
+            </Label>
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder={hasPhone ? 'Enter your email (optional)' : 'email@example.com'}
+                  className="h-10 pl-10 bc-email-input"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                />
+              </div>
+              {isEmail && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">Verified</span>
+                </div>
+              )}
             </div>
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="Enter your phone number"
-                value={formData.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
-              />
-            </div>            
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="phone" className="text-sm text-gray-700 mb-1.5 block">
+              Mobile Phone
+            </Label>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <PhoneInput
+                  value={phone.value}
+                  onChange={(v) => {
+                    phone.setValue(v);
+                    setFormData((prev) => ({ ...prev, phone: v }));
+                  }}
+                  isValid={phone.isValid}
+                  countryCode={phone.countryCode}
+                  nationalNumber={phone.nationalNumber}
+                />
+              </div>
+              {!isEmail && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">Verified</span>
+                </div>
+              )}
+            </div>
+          </div>       
+
+          {/* Info message based on verification method */}
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3">
+            <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-yellow-800">
+              {isEmail
+                ? 'Your email is verified. You can add a phone number if you\'d like.'
+                : 'Your phone is verified from login. Please add an email address to complete your profile.'}
+            </p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={onBack}
-              className="flex-1"
+              className="px-6"
               disabled={isLoading}
             >
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-black hover:bg-gray-800 text-white text-sm sm:text-base"
+              className="bg-[#B3802B] hover:bg-[#9a6d24] text-white px-6"
               disabled={!isFormValid || isLoading}
             >
-              {isLoading ? 'Creating...' : 'Continue to Booking'}
+              {isLoading ? 'Registering...' : 'Continue to My Profile'}
             </Button>
           </div>
         </form>

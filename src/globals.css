@@ -153,31 +153,39 @@
     border-radius: 6px !important;
     border-style: solid !important;
     border-width: 1px !important;
-    padding:0 3px !important;
+    padding: 0 3px !important;
   }
 
   .bc-otp-inputs input:focus {
     border-color: #c8a654;
   }
-.bc-tabs-container svg{
-  width: 16px;
-  height: 16px;
-}
-@media (min-width: 640px) {
 
-  .bc-otp-inputs input,
-  .bc-otp-inputs input:hover {
-    border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
-    border-radius: 6px !important;
-    border-style: solid !important;
-    border-width: 1px !important;
-    padding:0 8px !important;
+  .bc-tabs-container svg {
+    width: 16px;
+    height: 16px;
   }
-  .bc-tabs-container svg{
-    width: 24px;
-    height: 24px;
+  #bcClubFlow svg{fill:none;}
+  #bcClubFlow .bc-email-input {
+    padding-left: 40px !important
   }
-}
+
+  @media (min-width: 640px) {
+
+    .bc-otp-inputs input,
+    .bc-otp-inputs input:hover {
+      border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+      border-radius: 6px !important;
+      border-style: solid !important;
+      border-width: 1px !important;
+      padding: 0 8px !important;
+    }
+
+    .bc-tabs-container svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
   .bc-otp-inputs input:focus,
   .bc-otp-inputs input:active {
     --tw-ring-opacity: 1;

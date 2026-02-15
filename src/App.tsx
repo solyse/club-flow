@@ -626,13 +626,21 @@ function App() {
       {/* Progress Indicator */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <ProgressIndicator
-          currentStep={currentStep === 'access' || currentStep === 'verify' || currentStep === 'register' ? 1 : currentStep === 'booking' ? 3 : 1}
+          currentStep={
+            currentStep === 'access' || currentStep === 'verify'
+              ? 1
+              : currentStep === 'register'
+                ? 2
+                : currentStep === 'booking'
+                  ? 3
+                  : 1
+          }
         />
       </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
-        <div className="mx-auto" style={{ maxWidth: '500px' }}>
+        <div className="mx-auto" style={{ maxWidth: '670px' }}>
           {currentStep === 'access' && (
             <>
               <AccessStep onSubmit={handleAccessSubmit} onQRSuccess={handleQRSuccess} defaultTab={defaultTab} />
