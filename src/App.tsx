@@ -7,7 +7,7 @@ import { ProgressIndicator } from './components/ProgressIndicator';
 import { Header } from './components/Header';
 import { Toaster } from './components/ui/sonner';
 import { Loader } from './components/Loader';
-import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData,  ShippingRate, AsConfigData,  QuoteLocation, EventMetaObject } from './services/api';
+import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData, ShippingRate, AsConfigData, QuoteLocation, EventMetaObject } from './services/api';
 import { generateEventQuote, storeEventData } from './services/quoteUtils';
 import { storage, storageService } from './services/storage';
 import { envConfig } from './config/env';
@@ -543,17 +543,17 @@ function App() {
     let redirectUrl = `${envConfig.websiteUrl}/club/?${redirectCode}`;
     // Get quote data (from state or storage)
     const quote = quoteData || storage.getQuote<QuoteData & { shipping_options?: { id: string; title: string } }>();
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    const eventId = urlParams.get('event');
     if (eventData) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mode = urlParams.get('mode');
-      const eventId = urlParams.get('event');
       if (mode === 'event' && eventId) {
         redirectUrl = `${envConfig.websiteUrl}/pages/scanner/?event=${eventId}`;
       }
-    } else if (quote && quote.from && quote.to) {
+    } else {
       redirectUrl = `${envConfig.websiteUrl}/pages/scanner/`;
     }
-    // window.location.href = redirectUrl;
+    window.location.href = redirectUrl;
   };
   // Redirect to booking page when step is 'booking'
   useEffect(() => {
@@ -582,7 +582,7 @@ function App() {
           onQRSuccess={handleQRSuccess}
           redirectToBooking={redirectToBooking}
           defaultTab={defaultTab}
-          onSetCurrentStep={(step: string) => {setCurrentStep(step as Step);}}
+          onSetCurrentStep={(step: string) => { setCurrentStep(step as Step); }}
         />
       </div>
     );

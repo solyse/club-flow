@@ -3,9 +3,9 @@ import { envConfig } from '../config/env';
 
 // Storage keys constants
 export const STORAGE_KEYS = {
+  SCANNER_PAGE: "_bc_scanner_page",
   CLUB_PARTNER: "_bc_club_partner",
   PRODUCTS: "_bc_products",
-  CLUB_FLOW_OWNER: "_bc_club_flow_owner",
   ITEMS_OWNER: "_bc_items_owner",
   ENRICHED_ITEMS: "_bc_items",
   LOCATION: "_bc_location",
@@ -14,7 +14,8 @@ export const STORAGE_KEYS = {
   QUOTE: "_bc_quote",
   CONTACT_INFO: "_bc_contact_info",
   APP_INITIALIZED: "_bc_app_initialized",
-  EVENT: "_bc_event"
+  EVENT: "_bc_event",
+  PARTNER_REFERENCE: "_bc_partner_reference"
 } as const;
 
 export type StorageKey = keyof typeof STORAGE_KEYS;
@@ -232,6 +233,7 @@ export const storage = {
    * @returns boolean indicating success
    */
   setClubPartner: <T>(data: T): boolean => {
+    storageService.setItem('SCANNER_PAGE', "booking");
     return storageService.setItem('CLUB_PARTNER', data);
   },
   /**
@@ -240,7 +242,8 @@ export const storage = {
    * @returns boolean indicating success
    */
   setItemsOwner: <T>(data: T): boolean => {
-    return storageService.setItem('CLUB_FLOW_OWNER', data);
+    storageService.setItem('SCANNER_PAGE', "profile");
+    return storageService.setItem('ITEMS_OWNER', data);
   },
 
   /**
@@ -248,11 +251,11 @@ export const storage = {
    * @returns Customer data or null
    */
   getItemsOwner: <T>(): T | null => {
-    return storageService.getItem<T>('CLUB_FLOW_OWNER');
+    return storageService.getItem<T>('ITEMS_OWNER');
   },
   
   clearLocalStorage: (): any => {
-    storageService.removeItem('CLUB_FLOW_OWNER');
+    storageService.removeItem('SCANNER_PAGE');
     storageService.removeItem('ENRICHED_ITEMS');
     storageService.removeItem('QUOTES');
     storageService.removeItem('ITEMS_OWNER');
@@ -265,7 +268,8 @@ export const storage = {
    * @returns boolean indicating success
    */
   removeItemsOwner: (): boolean => {
-    return storageService.removeItem('CLUB_FLOW_OWNER');
+    storageService.removeItem('SCANNER_PAGE');
+    return storageService.removeItem('ITEMS_OWNER');
   },
 
   /**
@@ -273,7 +277,7 @@ export const storage = {
    * @returns boolean indicating if data exists
    */
   hasItemsOwner: (): boolean => {
-    return storageService.hasItem('CLUB_FLOW_OWNER');
+    return storageService.hasItem('ITEMS_OWNER');
   },
 
   /**

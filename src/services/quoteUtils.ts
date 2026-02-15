@@ -20,12 +20,6 @@ export function generateEventQuote(
   partnerData?: PartnerAddressData
 ): boolean {
   try {
-    // Check if partner data has defaultAddress
-    if (!partnerData?.defaultAddress) {
-      console.warn('Partner data does not have defaultAddress');
-      return false;
-    }
-
     // Get destination address fields from event (new structure has direct fields)
     const getDestFieldValue = (key: string): string => {
       const field = eventData.fields.find(f => f.key === key);
@@ -37,20 +31,19 @@ export function generateEventQuote(
       console.warn('Event does not have valid destination address fields');
       return false;
     }
-
     // Build from location from partner defaultAddress
     const fromLocation: QuoteLocation = {
       id: '',
-      name: partnerData?.defaultAddress.company || partnerData?.displayName || '',
-      street1: partnerData?.defaultAddress.address1 || '',
-      city: partnerData?.defaultAddress.city || '',
-      state: partnerData?.defaultAddress.provinceCode || partnerData?.defaultAddress.province || '',
-      postal_code: partnerData?.defaultAddress.zip || '',
-      country: partnerData?.defaultAddress.countryCodeV2 || partnerData?.defaultAddress.country || 'US',
+      name: partnerData?.defaultAddress?.company || partnerData?.displayName || '',
+      street1: partnerData?.defaultAddress?.address1 || '',
+      city: partnerData?.defaultAddress?.city || '',
+      state: partnerData?.defaultAddress?.provinceCode || partnerData?.defaultAddress?.province || '',
+      postal_code: partnerData?.defaultAddress?.zip || '',
+      country: partnerData?.defaultAddress?.countryCodeV2 || partnerData?.defaultAddress?.country || 'US',
       type: 'location',
       placeId: '',
       source: 'partner',
-      address: `${partnerData?.defaultAddress.address1}, ${partnerData?.defaultAddress.city}, ${partnerData?.defaultAddress.provinceCode} ${partnerData?.defaultAddress.zip}`,
+      address: `${partnerData?.defaultAddress?.address1}, ${partnerData?.defaultAddress?.city}, ${partnerData?.defaultAddress?.provinceCode} ${partnerData?.defaultAddress?.zip}`,
     };
 
     // Build to location from event destination fields

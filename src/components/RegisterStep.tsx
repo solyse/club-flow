@@ -196,45 +196,16 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
                 onChange={(e) => handleChange('email', e.target.value)}
               />
             </div>
-
             <div>
-              <Label htmlFor="phone">Phone Number {hasPhone ? '' : hasEmail ? '(optional)' : <span className="text-red-500">*</span>}</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
-                placeholder={hasEmail ? 'Enter your phone number (optional)' : 'Enter your phone number *'}
+                placeholder="Enter your phone number"
                 value={formData.phone}
                 onChange={(e) => handleChange('phone', e.target.value)}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="itemType">Item Type <span className="text-red-500">*</span></Label>
-              <Select
-                value={formData.itemType}
-                onValueChange={(value) => handleChange('itemType', value)}
-              >
-                <SelectTrigger id="itemType">
-                  <SelectValue placeholder="Select an item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {productOptions.length > 0 ? (
-                    productOptions.map((p) => (
-                      <SelectItem 
-                        key={String(p.id)} 
-                        value={String(p.id)}
-                      >
-                        {p.name || 'Unknown Product'}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>
-                      No products available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            </div>            
           </div>
 
           {error && (

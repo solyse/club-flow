@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { EventMetaObject } from '../services/api';
+import { formatDateRange } from '../utils/eventDateUtils';
 
 interface EventHeroProps {
   eventData: EventMetaObject;
@@ -31,58 +32,6 @@ const getBooleanFieldValue = (fields: EventMetaObject['fields'], key: string): b
 const getFieldReference = (fields: EventMetaObject['fields'], key: string): any | null => {
   const field = fields.find(f => f.key === key);
   return field?.reference || null;
-};
-
-// Helper function to format date
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return '';
-  
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch (error) {
-    return dateString;
-  }
-};
-
-// Helper function to format date range
-const formatDateRange = (startDate: string | null, endDate: string | null): string => {
-  if (!startDate && !endDate) return '';
-  if (!endDate) return formatDate(startDate);
-  if (!startDate) return formatDate(endDate);
-  
-  try {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    // If same month and year: "January 21–25, 2026"
-    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-      const month = start.toLocaleDateString('en-US', { month: 'long' });
-      const startDay = start.getDate();
-      const endDay = end.getDate();
-      const year = start.getFullYear();
-      return `${month} ${startDay}–${endDay}, ${year}`;
-    }
-    
-    // If same year but different months: "January 21 – February 5, 2026"
-    if (start.getFullYear() === end.getFullYear()) {
-      const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
-      const startDay = start.getDate();
-      const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
-      const endDay = end.getDate();
-      const year = start.getFullYear();
-      return `${startMonth} ${startDay} – ${endMonth} ${endDay}, ${year}`;
-    }
-    
-    // Different years: "January 21, 2025 – January 25, 2026"
-    return `${formatDate(startDate)} – ${formatDate(endDate)}`;
-  } catch (error) {
-    return `${formatDate(startDate)} – ${formatDate(endDate)}`;
-  }
 };
 
 export function EventHero({ eventData, partnerLogo, partnerDisplayName }: EventHeroProps) {
