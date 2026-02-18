@@ -31,19 +31,33 @@ export function generateEventQuote(
       console.warn('Event does not have valid destination address fields');
       return false;
     }
-    // Build from location from partner defaultAddress
+
+    const addr = partnerData?.defaultAddress;
+    const hasAddress1 = (addr?.address1 ?? '').trim().length > 0;
+    const hasCity = (addr?.city ?? '').trim().length > 0;
+    const hasZip = (addr?.zip ?? '').trim().length > 0;
+    const hasProvince = ((addr?.provinceCode ?? '') || (addr?.province ?? '')).trim().length > 0;
+
+
+    const street1 = (addr?.address1 ?? '').trim();
+    const city = (addr?.city ?? '').trim();
+    const state = (addr?.provinceCode ?? addr?.province ?? '').trim();
+    const postal_code = (addr?.zip ?? '').trim();
+    const country = ((addr?.countryCodeV2 ?? addr?.country ?? 'US').trim()) || 'US';
+    const name = (hasAddress1 && hasCity && hasZip) ? partnerData?.displayName : '';
+
     const fromLocation: QuoteLocation = {
       id: '',
-      name: partnerData?.defaultAddress?.company || partnerData?.displayName || '',
-      street1: partnerData?.defaultAddress?.address1 || '',
-      city: partnerData?.defaultAddress?.city || '',
-      state: partnerData?.defaultAddress?.provinceCode || partnerData?.defaultAddress?.province || '',
-      postal_code: partnerData?.defaultAddress?.zip || '',
-      country: partnerData?.defaultAddress?.countryCodeV2 || partnerData?.defaultAddress?.country || 'US',
+      name: name || '',
+      street1: street1 || '',
+      city: city || '',
+      state: state || '',
+      postal_code: postal_code || '',
+      country: country || '',
       type: 'location',
       placeId: '',
-      source: 'partner',
-      address: `${partnerData?.defaultAddress?.address1}, ${partnerData?.defaultAddress?.city}, ${partnerData?.defaultAddress?.provinceCode} ${partnerData?.defaultAddress?.zip}`,
+      source: '',
+      address: `${street1}, ${city}, ${state} ${postal_code}`.trim(),
     };
 
     // Build to location from event destination fields
@@ -121,14 +135,14 @@ function getBooleanFieldValue(fields: EventMetaObject['fields'], key: string): b
 function extractRichTextValue(fields: EventMetaObject['fields'], key: string): string | null {
   const field = fields.find(f => f.key === key);
   if (!field || !field.jsonValue) return null;
-  
+
   try {
     const jsonValue = field.jsonValue;
     // Check if jsonValue is an object (not string or array)
     if (typeof jsonValue === 'object' && jsonValue !== null && !Array.isArray(jsonValue)) {
       // Type guard: check if it's a rich text object with children
       const richTextObj = jsonValue as { type?: string; children?: any[] };
-      
+
       // Recursively extract text from children
       const extractText = (node: any): string => {
         if (node && typeof node === 'object' && node.type === 'text' && typeof node.value === 'string') {
@@ -139,7 +153,7 @@ function extractRichTextValue(fields: EventMetaObject['fields'], key: string): s
         }
         return '';
       };
-      
+
       if (richTextObj.children && Array.isArray(richTextObj.children)) {
         const text = richTextObj.children.map(extractText).filter(Boolean).join(' ');
         return text || null;
@@ -148,7 +162,7 @@ function extractRichTextValue(fields: EventMetaObject['fields'], key: string): s
   } catch (error) {
     console.error('Error extracting rich text value:', error);
   }
-  
+
   return null;
 }
 
@@ -161,7 +175,7 @@ function extractRichTextValue(fields: EventMetaObject['fields'], key: string): s
 export function storeEventData(eventData: EventMetaObject, eventId: string): boolean {
   try {
     const eventFields = eventData.fields;
-    
+
     // Extract destination address - use reference defaultAddress if available, otherwise use direct fields
     const destinationReference = getFieldReference(eventFields, 'destination');
     let destinationAddress: {
@@ -221,7 +235,7 @@ export function storeEventData(eventData: EventMetaObject, eventId: string): boo
         },
       };
     }
-    
+
     const storedEventData = {
       id: eventId,
       name: getFieldValue(eventFields, 'name'),

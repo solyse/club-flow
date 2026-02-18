@@ -204,11 +204,11 @@ function App() {
               // Parse address components for both locations
               const pickupAddress = apiService.parseAddressComponents(pickupResponse.data.addressComponents);
               const destinationAddress = apiService.parseAddressComponents(destinationResponse.data.addressComponents);
-
+              const isFullAddress = (pickupAddress.street1 && pickupAddress.city && pickupAddress.state && pickupAddress.postal_code && pickupAddress.country);
               // Build QuoteLocation objects
               const fromLocation: QuoteLocation = {
                 id: '',
-                name: pickupResponse.data.displayName.text || pickup,
+                name: isFullAddress || pickupResponse.data.displayName.text || pickup,
                 street1: pickupAddress.street1 || pickupResponse.data.formattedAddress,
                 city: pickupAddress.city,
                 state: pickupAddress.state,
@@ -216,8 +216,8 @@ function App() {
                 country: pickupAddress.country || 'US',
                 type: 'location',
                 placeId: '',
-                source: 'url',
-                address: pickupResponse.data.formattedAddress,
+                source: '',
+                address: isFullAddress ? pickupResponse.data.formattedAddress : "",
               };
 
               const toLocation: QuoteLocation = {
@@ -399,7 +399,7 @@ function App() {
                       const partnerData = partnerResponse.data.data;
 
                       // Store partner data in CLUB_PARTNER
-                      storageService.setItem('CLUB_PARTNER', partnerData);
+                      // storageService.setItem('CLUB_PARTNER', partnerData);
 
                       if (partnerData.logo) {
                         setEventPartnerLogo(partnerData.logo);
@@ -455,7 +455,14 @@ function App() {
   };
 
   const handleRegisterSubmit = (userData: any) => {
-    // Simulate registration
+    if (eventData) {
+      const customerData = storage.getItemsOwner<CustomerData>();
+      if (customerData) {
+        generateEventQuote(eventData, customerData);
+        const quote = storage.getQuotes<QuoteData>();
+        if (quote) setQuoteData(quote);
+      }
+    }
     setCurrentStep('booking');
   };
 
@@ -466,12 +473,10 @@ function App() {
     if (updatedItems) {
       setEnrichedItems(updatedItems);
     }
-
     // If we have event data, generate quote from customer address to event destination
     if (eventData) {
       generateEventQuote(eventData, customerData);
     }
-
     // You can store customer data in state or proceed to next step
     setCurrentStep('booking'); // Skip verification if QR code is valid
   };
