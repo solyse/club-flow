@@ -745,6 +745,43 @@ export class ApiService {
   }
 
   /**
+   * Get club data by partner id (POST body: { club: [partnerId] })
+   * Returns same shape as partner API (data.data has logo, displayName, etc.)
+   */
+  public async getClub(partnerId: string): Promise<PartnerResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/club`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: partnerId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: PartnerResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Club API Error:', error);
+      const errorResponse: PartnerErrorResponse = {
+        x: 400,
+        data: {
+          success: false,
+          status: 400,
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        },
+        duration: 0,
+        memory: '0',
+        epsid: '',
+      };
+      return errorResponse;
+    }
+  }
+
+  /**
    * Get partner details by email, phone, or id
    */
   public async getPartner(payload: { email?: string; phone?: string; id?: string }): Promise<PartnerResponse> {

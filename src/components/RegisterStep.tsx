@@ -23,9 +23,11 @@ interface RegisterStepProps {
   onSubmit: (userData: any) => void;
   onBack: () => void;
   products?: Product[];
+  partnerLogo?: string | null;
+  partnerDisplayName?: string | null;
 }
 
-export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: RegisterStepProps) {
+export function RegisterStep({ contactInfo, onSubmit, onBack, products = [], partnerLogo, partnerDisplayName }: RegisterStepProps) {
   const isEmail = contactInfo.includes('@');
   const productOptions = useMemo(() => products || [], [products]);
   const defaultProductId = useMemo(() => {
@@ -70,7 +72,7 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     // Validation: firstName and itemType are required
     if (!formData.firstName || !formData.itemType) {
       setError('Please fill in all required fields.');
@@ -80,7 +82,7 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
     // Validation: email or phone (at least one required)
     const hasEmail = formData.email.trim() !== '';
     const hasPhone = formData.phone.trim() !== '';
-    
+
     if (!hasEmail && !hasPhone) {
       setError('Please provide either email or phone number.');
       return;
@@ -88,7 +90,7 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
 
     try {
       setIsLoading(true);
-      
+
       // Build payload based on which contact method is provided
       const personalPayload: any = {
         firstName: formData.firstName.trim(),
@@ -115,7 +117,7 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
       };
 
       const response = await apiService.createCustomer(payload);
-      
+
       if (response.data.success) {
         toast.success('Profile created successfully!');
         onSubmit(formData);
@@ -145,17 +147,32 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
   // Validation: firstName and itemType are required, email OR phone at least one required
   const hasEmail = formData.email ? formData.email.trim() !== '' : false;
   const hasPhone = formData.phone ? formData.phone.trim() !== '' : false;
-  const isFormValid = formData.firstName.trim() !== '' && 
-                       formData.itemType !== '' && 
-                       (hasEmail || hasPhone);
+  const isFormValid = formData.firstName.trim() !== '' &&
+    formData.itemType !== '' &&
+    (hasEmail || hasPhone);
 
   return (
     <div className="max-w-2xl mx-auto">
+     
       {/* Welcome card */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-5">
-        <div className="mb-6">
-          <h2 className="text-xl font-medium mb-1 text-[#121110]">Welcome to BagCaddie Club</h2>
-          <p className="text-[#D6B588] text-sm">Complete your profile to make travel effortless.</p>
+        <div className="mb-6 flex justify-between items-center gap-4">
+          <div>
+            <h2 className="text-xl font-medium mb-1 text-[#121110]">Welcome to BagCaddie Club</h2>
+            {partnerLogo && (
+             <p className="text-sm text-[#121110]">for {partnerDisplayName} Members</p>
+            )}
+            <p className="text-[#d4af37] text-sm">Complete your profile to activate your Icon Golf travel benefits.</p>
+          </div>
+          {partnerLogo && (
+            <div>
+              <img
+                src={partnerLogo}
+                alt={partnerDisplayName || 'Partner Logo'}
+                className="max-h-10 md:max-h-12 w-auto object-contain"
+              />
+            </div>
+          )}
         </div>
         <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
           <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-gray-700">
@@ -171,7 +188,7 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
               <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
               <span className="text-xs text-gray-500">Choose your product</span>
             </div>
-            
+
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
               <span className="text-xs text-gray-500">Continue to booking</span>
@@ -263,7 +280,7 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [] }: R
                 </div>
               )}
             </div>
-          </div>       
+          </div>
 
           {/* Info message based on verification method */}
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3">

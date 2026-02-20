@@ -9,7 +9,7 @@ import { PhoneInput } from './ui/PhoneInput';
 import { usePhoneValidation } from './usePhoneValidation';
 import { toast } from 'sonner';
 import { getHeroImage } from '../data/heroImages';
-import { ShippingRate, QuoteData, CustomerData, apiService, LocationInfo, AsConfigData } from '../services/api';
+import { ShippingRate, QuoteData, CustomerData, apiService, LocationInfo, AsConfigData, PartnerData } from '../services/api';
 import { storage } from '../services/storage';
 import { WelcomeHeading } from './WelcomeHeading';
 import { QRScanModal } from './QRScanModal';
@@ -838,6 +838,8 @@ export function ClubAccessComponent({
                   setShowRegisterStep(false);
                   setIsVerifyModalOpen(false);
                 }}
+                partnerLogo={storage.getPartnerReference<PartnerData>()?.logo ?? null}
+                partnerDisplayName={storage.getPartnerReference<PartnerData>()?.displayName ?? null}
               />
             </motion.div>
           </div>

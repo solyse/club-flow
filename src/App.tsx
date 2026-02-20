@@ -7,7 +7,7 @@ import { ProgressIndicator } from './components/ProgressIndicator';
 import { Header } from './components/Header';
 import { Toaster } from './components/ui/sonner';
 import { Loader } from './components/Loader';
-import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData, ShippingRate, AsConfigData, QuoteLocation, EventMetaObject } from './services/api';
+import { CustomerData, Product, EnrichedItem, apiService, LocationInfo, CountryCode, QuoteData, ShippingRate, AsConfigData, QuoteLocation, EventMetaObject, PartnerData } from './services/api';
 import { generateEventQuote, storeEventData } from './services/quoteUtils';
 import { storage, storageService } from './services/storage';
 import { envConfig } from './config/env';
@@ -63,27 +63,33 @@ function App() {
   }, []);
 
   // Handle query parameters: mode (login/quote/event) and event (EventId)
+  // Build URL from current search params so partner (and other params) are preserved
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
     const eventId = urlParams.get('event');
+    const partnerCode = urlParams.get('partner_code');
+
+    const replaceUrlWithMode = (newMode: string) => {
+      const params = new URLSearchParams(urlParams.toString());
+      params.set('mode', newMode);
+      if (partnerCode) params.set('partner_code', partnerCode);
+      const search = params.toString();
+      const newUrl = `${window.location.origin}${window.location.pathname}${search ? `?${search}` : ''}`;
+      console.log('newUrl', newUrl);
+      window.history.replaceState({}, '', newUrl);
+    };
 
     // If no query parameters exist, add mode=login
-    if (urlParams.toString() === '') {
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set('mode', 'login');
-      window.history.replaceState({}, '', newUrl.toString());
-    } else if (!mode && !eventId) {
-      // If no mode but has other params, assume mode=login
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set('mode', 'login');
-      window.history.replaceState({}, '', newUrl.toString());
-    } else if (eventId && mode !== 'event') {
-      // If event ID exists but mode is not 'event', set mode=event
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set('mode', 'event');
-      window.history.replaceState({}, '', newUrl.toString());
-    }
+    // if (urlParams.toString() === '') {
+    //   replaceUrlWithMode('login');
+    // } else if (!mode && !eventId) {
+    //   // If no mode but has other params (e.g. partner), assume mode=login
+    //   replaceUrlWithMode('login');
+    // } else if (eventId && mode !== 'event') {
+    //   // If event ID exists but mode is not 'event', set mode=event
+    //   replaceUrlWithMode('event');
+    // }
   }, []);
 
   // Clear ITEMS_OWNER and ENRICHED_ITEMS on first app load only
@@ -101,6 +107,21 @@ function App() {
   // Load all initial data in strict sequential order
   useEffect(() => {
     const loadInitialData = async () => {
+      // 0. When URL has partner query param, fetch club data and store in PARTNER_REFERENCE
+      const loadPartnerReference = async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const partner = urlParams.get('partner_code');
+        if (!partner) return;
+        try {
+          const response = await apiService.getClub(partner);
+          if (response.data.success && 'data' in response.data && response.data.data) {
+            storage.setPartnerReference(response.data.data);
+          }
+        } catch (err) {
+          console.error('Error loading partner reference:', err);
+        }
+      };
+
       // 1. Load AS config (country codes) - cache-first
       // Only call API once, even if country codes are cached
       const loadAsConfig = async () => {
@@ -336,6 +357,7 @@ function App() {
       };
 
       // Execute in strict sequential order
+      await loadPartnerReference();
       await loadAsConfig();
       await loadLocation();
       await loadProducts();
@@ -538,6 +560,7 @@ function App() {
 
     storage.removeQuote();
     storage.removeAppInitialized();
+    storage.removePartnerReference();
     // Only remove items owner if we have event data
     if (eventData) {
       storage.removeItemsOwner();
@@ -551,6 +574,12 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
     const eventId = urlParams.get('event');
+    const partner = urlParams.get('partner');
+    const appendPartner = (url: string) => {
+      if (!partner) return url;
+      const sep = url.includes('?') ? '&' : '?';
+      return `${url}${sep}partner=${encodeURIComponent(partner)}`;
+    };
     if (eventData) {
       if (mode === 'event' && eventId) {
         redirectUrl = `${envConfig.websiteUrl}/pages/scanner/?event=${eventId}`;
@@ -558,7 +587,7 @@ function App() {
     } else {
       redirectUrl = `${envConfig.websiteUrl}/pages/scanner/`;
     }
-    window.location.href = redirectUrl;
+    window.location.href = appendPartner(redirectUrl);
   };
   // Redirect to booking page when step is 'booking'
   useEffect(() => {
@@ -658,6 +687,8 @@ function App() {
               onSubmit={handleRegisterSubmit}
               onBack={handleBack}
               products={currentProductList}
+              partnerLogo={storage.getPartnerReference<PartnerData>()?.logo ?? null}
+              partnerDisplayName={storage.getPartnerReference<PartnerData>()?.displayName ?? null}
             />
           )}
 

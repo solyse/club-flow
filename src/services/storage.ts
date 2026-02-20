@@ -253,7 +253,28 @@ export const storage = {
   getItemsOwner: <T>(): T | null => {
     return storageService.getItem<T>('ITEMS_OWNER');
   },
-  
+
+  /**
+   * Store partner reference data (e.g. from ?partner= URL param)
+   * @param data - Partner/club data to store
+   * @returns boolean indicating success
+   */
+  setPartnerReference: <T>(data: T): boolean => {
+    return storageService.setItem('PARTNER_REFERENCE', data);
+  },
+
+  /**
+   * Get partner reference data
+   * @returns Partner/club data or null
+   */
+  getPartnerReference: <T>(): T | null => {
+    return storageService.getItem<T>('PARTNER_REFERENCE');
+  },
+
+  removePartnerReference: (): boolean => {
+    return storageService.removeItem('PARTNER_REFERENCE');
+  },
+
   clearLocalStorage: (): any => {
     storageService.removeItem('SCANNER_PAGE');
     storageService.removeItem('ENRICHED_ITEMS');
@@ -261,6 +282,7 @@ export const storage = {
     storageService.removeItem('ITEMS_OWNER');
     storageService.removeItem('CLUB_PARTNER');
     storageService.removeItem('CONTACT_INFO');
+    storageService.removeItem('PARTNER_REFERENCE');
   },
 
   /**
