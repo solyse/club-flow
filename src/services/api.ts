@@ -748,14 +748,14 @@ export class ApiService {
    * Get club data by partner id (POST body: { club: [partnerId] })
    * Returns same shape as partner API (data.data has logo, displayName, etc.)
    */
-  public async getClub(partnerId: string): Promise<PartnerResponse> {
+  public async getClub(partnerId: string, isPartnerCode: boolean = false): Promise<PartnerResponse> {
     try {
       const response = await fetch(`${this.baseURL}/club`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code: partnerId }),
+        body: JSON.stringify({ code: partnerId, partner_reference: isPartnerCode }),
       });
 
       if (!response.ok) {
@@ -909,10 +909,11 @@ export class ApiService {
     personal: {
       firstName: string;
       lastName: string;
-      phoneCode: string;
-      phone: string;
-      email: string;
+      phoneCode?: string;
+      phone?: string;
+      email?: string;
     };
+    partner?: string;
   }): Promise<CustomerResponse> {
     try {
       const response = await fetch(`${this.baseURL}/customer`, {

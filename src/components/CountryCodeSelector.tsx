@@ -5,32 +5,34 @@ interface Country {
   code: string;
   abbreviation: string;
   name: string;
-  flag: string;
   dialCode: string;
 }
 
+const getFlagUrl = (abbreviation: string) =>
+  `https://flagcdn.com/w40/${abbreviation.toLowerCase()}.png`;
+
 const countries: Country[] = [
-  { code: '+1', abbreviation: 'US', name: 'United States', flag: '🇺🇸', dialCode: '+1' },
-  { code: '+1', abbreviation: 'CA', name: 'Canada', flag: '🇨🇦', dialCode: '+1' },
-  { code: '+44', abbreviation: 'GB', name: 'United Kingdom', flag: '🇬🇧', dialCode: '+44' },
-  { code: '+61', abbreviation: 'AU', name: 'Australia', flag: '🇦🇺', dialCode: '+61' },
-  { code: '+880', abbreviation: 'BD', name: 'Bangladesh', flag: '🇧🇩', dialCode: '+880' },
-  { code: '+91', abbreviation: 'IN', name: 'India', flag: '🇮🇳', dialCode: '+91' },
-  { code: '+86', abbreviation: 'CN', name: 'China', flag: '🇨🇳', dialCode: '+86' },
-  { code: '+81', abbreviation: 'JP', name: 'Japan', flag: '🇯🇵', dialCode: '+81' },
-  { code: '+82', abbreviation: 'KR', name: 'South Korea', flag: '🇰🇷', dialCode: '+82' },
-  { code: '+49', abbreviation: 'DE', name: 'Germany', flag: '🇩🇪', dialCode: '+49' },
-  { code: '+33', abbreviation: 'FR', name: 'France', flag: '🇫🇷', dialCode: '+33' },
-  { code: '+39', abbreviation: 'IT', name: 'Italy', flag: '🇮🇹', dialCode: '+39' },
-  { code: '+34', abbreviation: 'ES', name: 'Spain', flag: '🇪🇸', dialCode: '+34' },
-  { code: '+31', abbreviation: 'NL', name: 'Netherlands', flag: '🇳🇱', dialCode: '+31' },
-  { code: '+41', abbreviation: 'CH', name: 'Switzerland', flag: '🇨🇭', dialCode: '+41' },
-  { code: '+65', abbreviation: 'SG', name: 'Singapore', flag: '🇸🇬', dialCode: '+65' },
-  { code: '+852', abbreviation: 'HK', name: 'Hong Kong', flag: '🇭🇰', dialCode: '+852' },
-  { code: '+64', abbreviation: 'NZ', name: 'New Zealand', flag: '🇳🇿', dialCode: '+64' },
-  { code: '+27', abbreviation: 'ZA', name: 'South Africa', flag: '🇿🇦', dialCode: '+27' },
-  { code: '+971', abbreviation: 'AE', name: 'United Arab Emirates', flag: '🇦🇪', dialCode: '+971' },
-  { code: '+52', abbreviation: 'MX', name: 'Mexico', flag: '🇲🇽', dialCode: '+52' },
+  { code: '+1', abbreviation: 'US', name: 'United States', dialCode: '+1' },
+  { code: '+1', abbreviation: 'CA', name: 'Canada', dialCode: '+1' },
+  { code: '+44', abbreviation: 'GB', name: 'United Kingdom', dialCode: '+44' },
+  { code: '+61', abbreviation: 'AU', name: 'Australia', dialCode: '+61' },
+  { code: '+880', abbreviation: 'BD', name: 'Bangladesh', dialCode: '+880' },
+  { code: '+91', abbreviation: 'IN', name: 'India', dialCode: '+91' },
+  { code: '+86', abbreviation: 'CN', name: 'China', dialCode: '+86' },
+  { code: '+81', abbreviation: 'JP', name: 'Japan', dialCode: '+81' },
+  { code: '+82', abbreviation: 'KR', name: 'South Korea', dialCode: '+82' },
+  { code: '+49', abbreviation: 'DE', name: 'Germany', dialCode: '+49' },
+  { code: '+33', abbreviation: 'FR', name: 'France', dialCode: '+33' },
+  { code: '+39', abbreviation: 'IT', name: 'Italy', dialCode: '+39' },
+  { code: '+34', abbreviation: 'ES', name: 'Spain', dialCode: '+34' },
+  { code: '+31', abbreviation: 'NL', name: 'Netherlands', dialCode: '+31' },
+  { code: '+41', abbreviation: 'CH', name: 'Switzerland', dialCode: '+41' },
+  { code: '+65', abbreviation: 'SG', name: 'Singapore', dialCode: '+65' },
+  { code: '+852', abbreviation: 'HK', name: 'Hong Kong', dialCode: '+852' },
+  { code: '+64', abbreviation: 'NZ', name: 'New Zealand', dialCode: '+64' },
+  { code: '+27', abbreviation: 'ZA', name: 'South Africa', dialCode: '+27' },
+  { code: '+971', abbreviation: 'AE', name: 'United Arab Emirates', dialCode: '+971' },
+  { code: '+52', abbreviation: 'MX', name: 'Mexico', dialCode: '+52' },
 ];
 
 interface CountryCodeSelectorProps {
@@ -85,7 +87,11 @@ export function CountryCodeSelector({ value, onChange }: CountryCodeSelectorProp
         className="appearance-none h-[52px] px-1 pr-4 rounded-lg border border-[#E0E0E0] outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all bg-white text-[#111111] cursor-pointer flex items-center gap-1 country-code-selector-btn"
         style={{ fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
       >
-        <span className="text-lg">{selectedCountry.flag}</span>
+        <img
+          src={getFlagUrl(selectedCountry.abbreviation)}
+          alt=""
+          className="w-6 h-4 object-cover flex-shrink-0"
+        />
         <span>{selectedCountry.abbreviation}</span>
         <span className="text-[#666666]">{selectedCountry.code}</span>
         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
@@ -137,7 +143,11 @@ export function CountryCodeSelector({ value, onChange }: CountryCodeSelectorProp
                     </div>
 
                     {/* Flag */}
-                    <span className="text-xl flex-shrink-0">{country.flag}</span>
+                    <img
+                      src={getFlagUrl(country.abbreviation)}
+                      alt=""
+                      className="w-6 h-4 object-cover flex-shrink-0"
+                    />
 
                     {/* Abbreviation */}
                     <span 

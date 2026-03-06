@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect } from "react";
 import { CountryCodeSelector } from "../CountryCodeSelector";
 
 // Map country codes to abbreviations (default mapping)
@@ -44,10 +44,19 @@ export const PhoneInput = ({
     countryCode: string | null;
     nationalNumber: string;
 }) => {
-    const handleCountryChange = (country: { abbreviation: string; dialCode: string; code: string; name: string; flag: string }) => {
+    const handleCountryChange = (country: { abbreviation: string; dialCode: string; code: string; name: string }) => {
         const newValue = `${country.dialCode}${nationalNumber}`;
         onChange(newValue);
     };
+
+    // When autoFocus is used, the browser may scroll the input into view. Scroll to top
+    // so the user sees quote/prices/shipment options above the form.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        }, 0);
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <>

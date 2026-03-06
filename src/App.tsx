@@ -76,7 +76,7 @@ function App() {
       if (partnerCode) params.set('partner_code', partnerCode);
       const search = params.toString();
       const newUrl = `${window.location.origin}${window.location.pathname}${search ? `?${search}` : ''}`;
-      console.log('newUrl', newUrl);
+      
       window.history.replaceState({}, '', newUrl);
     };
 
@@ -113,7 +113,7 @@ function App() {
         const partner = urlParams.get('partner_code');
         if (!partner) return;
         try {
-          const response = await apiService.getClub(partner);
+          const response = await apiService.getClub(partner,true);
           if (response.data.success && 'data' in response.data && response.data.data) {
             storage.setPartnerReference(response.data.data);
           }
@@ -574,11 +574,11 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
     const eventId = urlParams.get('event');
-    const partner = urlParams.get('partner');
+    const partner = urlParams.get('partner_code');
     const appendPartner = (url: string) => {
       if (!partner) return url;
       const sep = url.includes('?') ? '&' : '?';
-      return `${url}${sep}partner=${encodeURIComponent(partner)}`;
+      return `${url}${sep}partner_code=${encodeURIComponent(partner)}`;
     };
     if (eventData) {
       if (mode === 'event' && eventId) {

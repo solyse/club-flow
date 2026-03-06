@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { toast } from 'sonner';
-import { apiService, Product, LocationInfo } from '../services/api';
+import { apiService, Product } from '../services/api';
 import { storage } from '../services/storage';
 import { envConfig } from '../config/env';
 
@@ -52,23 +52,6 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [], par
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Extract phone code and phone number from current form phone value
-  const getPhoneCodeAndNumber = (): { phoneCode: string; phone: string } => {
-    if (isEmail) {
-      // Get phone code from location cache
-      const location = storage.getLocation<LocationInfo>();
-      const phoneCode = location?.country_metadata?.calling_code || '+1';
-      return { phoneCode, phone: formData.phone.replace(/[^0-9]/g, '') };
-    }
-    const phoneWithCode = (formData.phone || contactInfo).trim();
-    const codeMatch = phoneWithCode.match(/^(\+[0-9]{1,4})/);
-    const phoneCode = codeMatch ? codeMatch[1] : '+1';
-    const phoneNumber = codeMatch
-      ? phoneWithCode.replace(codeMatch[1], '').replace(/[^0-9]/g, '')
-      : phoneWithCode.replace(/[^0-9]/g, '').slice(-10);
-    return { phoneCode, phone: phoneNumber };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -91,30 +74,40 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [], par
     try {
       setIsLoading(true);
 
-      // Build payload based on which contact method is provided
+      // Build payload: include email and/or phone whenever provided
       const personalPayload: any = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim() || '',
       };
 
-      // Priority: If email is provided, only send email (exclude phoneCode and phone)
-      // If only phone is provided (no email), send phoneCode and phone
       if (hasEmail) {
         personalPayload.email = formData.email.trim();
-        // Explicitly exclude phoneCode and phone when email is provided
-      } else if (hasPhone) {
-        // Only phone is provided (no email), include phone and phoneCode
-        const { phoneCode, phone } = getPhoneCodeAndNumber();
-        personalPayload.phoneCode = phoneCode;
-        personalPayload.phone = phone;
+      }
+      if (hasPhone) {
+        personalPayload.phoneCode = phone.countryCode ?? '+1';
+        personalPayload.phone = phone.nationalNumber;
       }
 
-      const payload = {
+      const payload: {
+        items: { item_id: string };
+        personal: typeof personalPayload;
+        partner?: string;
+      } = {
         items: {
           item_id: formData.itemType,
         },
         personal: personalPayload,
       };
+
+      // If we have partner reference (e.g. from ?partner_code= URL), pass numeric ID in payload
+      const partnerRef = storage.getPartnerReference<{ id: string }>();
+      if (partnerRef?.id) {
+        // Extract numeric ID from Shopify GID (e.g. "gid://shopify/Customer/8778100277464" -> "8778100277464")
+        const numericId = partnerRef.id.split('/').pop();
+        if (numericId) {
+          payload.partner = numericId;
+        }
+      }
 
       const response = await apiService.createCustomer(payload);
 
@@ -151,6 +144,37 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [], par
     formData.itemType !== '' &&
     (hasEmail || hasPhone);
 
+  // Partner checklist content: use partner_reference_details when available, else fallback
+  const partnerRef = storage.getPartnerReference<any>();
+  const partnerChecklist = partnerRef?.partner_reference_details?.[0]?.checklists?.[0];
+
+  const checklistOne: [string, string] = (
+    Array.isArray(partnerChecklist?.checklist_one) && partnerChecklist.checklist_one.length >= 1
+      ? [
+          partnerChecklist.checklist_one[0],
+          (partnerChecklist.checklist_one[1] as string) ?? '',
+        ]
+      : ['Complete your member profile', 'Add your contact details so we can coordinate your travel and shipments smoothly.']
+  );
+
+  const checklistTwo: [string, string] = (
+    Array.isArray(partnerChecklist?.checklist_two) && partnerChecklist.checklist_two.length >= 1
+      ? [
+          partnerChecklist.checklist_two[0],
+          (partnerChecklist.checklist_two[1] as string) ?? '',
+        ]
+      : ['Personalize your bag tags', ' Most members create one for their golf bag and another for luggage or a spouse. Additional tags can be added anytime.']
+  );
+
+  const checklistThree: [string, string] = (
+    Array.isArray(partnerChecklist?.checklist_three) && partnerChecklist.checklist_three.length >= 1
+      ? [
+          partnerChecklist.checklist_three[0],
+          (partnerChecklist.checklist_three[1] as string) ?? '',
+        ]
+      : [' Save your home and club addresses', ' Store your home and preferred golf clubs for faster, more accurate bookings.']
+  );
+
   return (
     <div className="max-w-2xl mx-auto">
      
@@ -182,16 +206,30 @@ export function RegisterStep({ contactInfo, onSubmit, onBack, products = [], par
           <div className="space-y-3">
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-gray-500">Add your name & contact</span>
+              <div className="flex-1">
+                <div className="text-xs font-medium text-gray-700">{checklistOne[0]}</div>
+                {checklistOne[1] && (
+                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">{checklistOne[1]}</div>
+                )}
+              </div>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-gray-500">Choose your product</span>
+              <div className="flex-1">
+                <div className="text-xs font-medium text-gray-700">{checklistTwo[0]}</div>
+                {checklistTwo[1] && (
+                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">{checklistTwo[1]}</div>
+                )}
+              </div>
             </div>
-
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 border-2 border-gray-300 border-solid rounded mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-gray-500">Continue to booking</span>
+              <div className="flex-1">
+                <div className="text-xs font-medium text-gray-700">{checklistThree[0]}</div>
+                {checklistThree[1] && (
+                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">{checklistThree[1]}</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
